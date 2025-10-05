@@ -41,7 +41,7 @@ void resize_dynamic_array(dynamic_array_t* arr, size_t new_capacity) {
     uint64_t* new_data = (uint64_t *)brealloc(arr->data, new_capacity * sizeof(uint64_t));
     if(!new_data) {
         perror("Failed to reallocate memory for array data");
-        return;
+        abort();
     }
 
     arr->data = new_data;
