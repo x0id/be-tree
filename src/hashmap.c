@@ -3,7 +3,6 @@
 #include "alloc.h"
 #include "ast.h"
 #include "ast_compare.h"
-#include "clone.h"
 #include "hashmap.h"
 #include "jsw_rbtree.h"
 #include "map.h"

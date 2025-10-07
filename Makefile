@@ -150,7 +150,6 @@ tidy:
 	#$(TIDY) src/ast.c -checks='*' -- -Isrc
 	#$(TIDY) src/ast_compare.c -checks='*' -- -Isrc
 	#$(TIDY) src/betree.c -checks='*' -- -Isrc
-	#$(TIDY) src/clone.c -checks='*' -- -Isrc
 	#$(TIDY) src/config.c -checks='*' -- -Isrc
 	#$(TIDY) src/debug.c -checks='*' -- -Isrc
 	#$(TIDY) src/hashmap.c -checks='*' -- -Isrc
