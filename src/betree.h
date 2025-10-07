@@ -20,6 +20,9 @@ struct report {
     size_t memoized;
     size_t shorted;
     betree_sub_t* subs;
+    void (*cb)(void *arg, int reason, betree_sub_t id);
+    void *arg;
+    int last_reason;
 };
 
 struct report_counting {

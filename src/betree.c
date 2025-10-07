@@ -642,6 +642,9 @@ struct report* make_report()
     report->memoized = 0;
     report->shorted = 0;
     report->subs = NULL;
+    report->cb = NULL;
+    report->arg = NULL;
+    report->last_reason = -1;
     return report;
 }
 

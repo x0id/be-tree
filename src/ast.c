@@ -1380,6 +1380,9 @@ static bool match_bool_expr(const struct betree_variable** preds,
         case AST_BOOL_VARIABLE: {
             bool value;
             bool is_variable_defined = get_bool_var(bool_expr.variable.var, preds, &value);
+            if (report->cb) {
+                report->last_reason = bool_expr.variable.var;
+            }
             if(is_variable_defined == false) {
                 return false;
             }
@@ -1446,6 +1449,21 @@ static bool match_is_null_expr(const struct betree_variable** preds,
     }
 }
 
+static int special_expr_reason(const struct ast_special_expr *special_expr) {
+    switch(special_expr->type) {
+        case AST_SPECIAL_FREQUENCY:
+            return special_expr->frequency.attr_var.var;
+        case AST_SPECIAL_SEGMENT:
+            return special_expr->segment.attr_var.var;
+        case AST_SPECIAL_GEO:
+            return -2; // FIXME: reason geo, no var
+        case AST_SPECIAL_STRING:
+            return special_expr->string.attr_var.var;
+        default:
+            abort();
+    }
+}
+
 static bool match_node_inner(const struct betree_variable** preds,
     const struct ast_node* node,
     struct memoize* memoize,
@@ -1469,9 +1487,15 @@ static bool match_node_inner(const struct betree_variable** preds,
     switch(node->type) {
         case AST_TYPE_IS_NULL_EXPR:
             result = match_is_null_expr(preds, node->is_null_expr);
+            if (!result && report->cb) {
+                report->last_reason = node->is_null_expr.attr_var.var;
+            }
             break;
         case AST_TYPE_SPECIAL_EXPR: {
             result = match_special_expr(preds, node->special_expr);
+            if (!result && report->cb) {
+                report->last_reason = special_expr_reason(&node->special_expr);
+            }
             break;
         }
         case AST_TYPE_BOOL_EXPR: {

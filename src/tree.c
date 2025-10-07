@@ -75,6 +75,30 @@ static enum short_circuit_e try_short_circuit(
     return SHORT_CIRCUIT_NONE;
 }
 
+static enum short_circuit_e try_short_circuit_(
+    size_t attr_domains_count, const struct short_circuit* short_circuit,
+    const uint64_t* undefined, int *last_reason)
+{
+    size_t count = attr_domains_count / 64 + 1;
+    for(size_t i = 0; i < count; i++) {
+        bool pass = short_circuit->pass[i] & undefined[i];
+        if(pass) {
+            return SHORT_CIRCUIT_PASS;
+        }
+        uint64_t fail_mask = short_circuit->fail[i] & undefined[i];
+        if(fail_mask) {
+            for(size_t j = 0, mask = 1;; j++, mask <<= 1) {
+                if(mask & fail_mask) {
+                    *last_reason = j;
+                    break;
+                }
+            }
+            return SHORT_CIRCUIT_FAIL;
+        }
+    }
+    return SHORT_CIRCUIT_NONE;
+}
+
 bool match_sub(size_t attr_domains_count,
     const struct betree_variable** preds,
     const struct betree_sub* sub,
@@ -82,8 +106,32 @@ bool match_sub(size_t attr_domains_count,
     struct memoize* memoize,
     const uint64_t* undefined)
 {
-    enum short_circuit_e short_circuit
-        = try_short_circuit(attr_domains_count, &sub->short_circuit, undefined);
+    enum short_circuit_e short_circuit =
+        try_short_circuit(attr_domains_count, &sub->short_circuit, undefined);
+    if(short_circuit != SHORT_CIRCUIT_NONE) {
+        if(report != NULL) {
+            report->shorted++;
+        }
+        if(short_circuit == SHORT_CIRCUIT_PASS) {
+            return true;
+        }
+        if(short_circuit == SHORT_CIRCUIT_FAIL) {
+            return false;
+        }
+    }
+    bool result = match_node(preds, sub->expr, memoize, report);
+    return result;
+}
+
+bool match_sub_(size_t attr_domains_count,
+    const struct betree_variable** preds,
+    const struct betree_sub* sub,
+    struct report* report,
+    struct memoize* memoize,
+    const uint64_t* undefined)
+{
+    enum short_circuit_e short_circuit =
+        try_short_circuit_(attr_domains_count, &sub->short_circuit, undefined, &report->last_reason);
     if(short_circuit != SHORT_CIRCUIT_NONE) {
         if(report != NULL) {
             report->shorted++;
@@ -1987,11 +2035,25 @@ bool betree_search_with_preds(const struct config* config,
     struct subs_to_eval subs;
     init_subs_to_eval(&subs);
     match_be_tree((const struct attr_domain**)config->attr_domains, preds, cnode, &subs);
-    for(size_t i = 0; i < subs.count; i++) {
-        const struct betree_sub* sub = subs.subs[i];
-        report->evaluated++;
-        if(match_sub(config->attr_domain_count, preds, sub, report, &memoize, undefined) == true) {
-            add_sub(sub->id, report);
+    if (report->cb != NULL) {
+        for(size_t i = 0; i < subs.count; i++) {
+            const struct betree_sub* sub = subs.subs[i];
+            report->evaluated++;
+            if(match_sub_(config->attr_domain_count, preds, sub, report, &memoize, undefined) == true) {
+                (*report->cb)(report->arg, 0, sub->id);
+            }
+            else {
+                (*report->cb)(report->arg, report->last_reason, sub->id);
+            }
+        }
+    }
+    else {
+        for(size_t i = 0; i < subs.count; i++) {
+            const struct betree_sub* sub = subs.subs[i];
+            report->evaluated++;
+            if(match_sub(config->attr_domain_count, preds, sub, report, &memoize, undefined) == true) {
+                add_sub(sub->id, report);
+            }
         }
     }
     bfree(subs.subs);
