@@ -3,7 +3,7 @@
 #include "tree.h"
 #include "minunit.h"
 
-int test_one()
+static int test_one()
 {
     struct betree* tree = betree_make();
 
@@ -11,18 +11,23 @@ int test_one()
 
     betree_insert(tree, 1, "stop");
 
+    struct report *report = make_report();
     struct betree_event* event = betree_make_event(tree);
     betree_set_variable(event, 0, betree_make_boolean_variable("stop", false));
-
-    struct report *report = make_report();
-
     betree_search_with_event(tree, event, report);
-    fprintf(stderr, "evaluated: %lu\n", report->evaluated);
-    fprintf(stderr, "matched: %lu\n", report->matched);
-    fprintf(stderr, "memoized: %lu\n", report->memoized);
-    fprintf(stderr, "shorted: %lu\n", report->shorted);
-    for (size_t i=0; i<report->matched; i++)
-        fprintf(stderr, "id: %lu\n", report->subs[i]);
+
+    mu_assert(report->matched == 0, "");
+
+    free_report(report);
+    betree_free_event(event);
+
+    report = make_report();
+    event = betree_make_event(tree);
+    betree_set_variable(event, 0, betree_make_boolean_variable("stop", true));
+    betree_search_with_event(tree, event, report);
+
+    mu_assert(report->matched == 1, "");
+    mu_assert(report->subs[0] == 1, "");
 
     free_report(report);
     betree_free_event(event);
@@ -31,9 +36,76 @@ int test_one()
     return 0;
 }
 
-int all_tests()
+static void *last_arg;
+static betree_sub_t last_id;
+static bool last_result;
+static void *last_context;
+
+static void hook(void *arg, betree_sub_t id, bool result, void *context) {
+    last_arg = arg;
+    last_id = id;
+    last_result = result;
+    last_context = context;
+}
+
+static int test_two()
+{
+    struct betree* tree = betree_make();
+
+    betree_add_boolean_variable(tree, "stop", false);
+
+    betree_insert(tree, 1, "stop");
+
+    struct report *report = make_report();
+    report->cb = hook;
+    report->arg = (void *)123;
+
+    struct betree_event* event = betree_make_event(tree);
+
+    struct betree_variable *var = betree_make_boolean_variable("stop", false);
+    var->attr_var.data = (void *)444;
+
+    betree_set_variable(event, 0, var);
+    betree_search_with_event(tree, event, report);
+
+    mu_assert(report->matched == 0, "");
+    mu_assert(last_arg == (void *)123, "");
+    mu_assert(last_id == 1, "");
+    mu_assert(last_result == false, "");
+    mu_assert(last_context == (void *)444, "");
+
+    free_report(report);
+    betree_free_event(event);
+
+    report = make_report();
+    report->cb = hook;
+    report->arg = (void *)456;
+
+    event = betree_make_event(tree);
+
+    var = betree_make_boolean_variable("stop", true);
+    var->attr_var.data = (void *)555;
+
+    betree_set_variable(event, 0, var);
+    betree_search_with_event(tree, event, report);
+
+    mu_assert(report->matched == 0, "");
+    mu_assert(last_arg == (void *)456, "");
+    mu_assert(last_id == 1, "");
+    mu_assert(last_result == true, "");
+    mu_assert(last_context == (void *)555, "");
+
+    free_report(report);
+    betree_free_event(event);
+    betree_free(tree);
+
+    return 0;
+}
+
+static int all_tests()
 {
     mu_run_test(test_one);
+    mu_run_test(test_two);
     return 0;
 }
 

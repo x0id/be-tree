@@ -2036,15 +2036,13 @@ bool betree_search_with_preds(const struct config* config,
     init_subs_to_eval(&subs);
     match_be_tree((const struct attr_domain**)config->attr_domains, preds, cnode, &subs);
     if (report->cb != NULL) {
+        void *arg = report->arg;
         for(size_t i = 0; i < subs.count; i++) {
             const struct betree_sub* sub = subs.subs[i];
             report->evaluated++;
-            if(match_sub_(config->attr_domain_count, preds, sub, report, &memoize, undefined) == true) {
-                (*report->cb)(report->arg, 0, sub->id);
-            }
-            else {
-                (*report->cb)(report->arg, report->last_reason, sub->id);
-            }
+            bool result = match_sub_(config->attr_domain_count, preds, sub, report, &memoize, undefined);
+            void *context = preds[report->last_reason]->attr_var.data;
+            (*report->cb)(arg, sub->id, result, context);
         }
     }
     else {

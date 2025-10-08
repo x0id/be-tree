@@ -20,7 +20,7 @@ struct report {
     size_t memoized;
     size_t shorted;
     betree_sub_t* subs;
-    void (*cb)(void *arg, int reason, betree_sub_t id);
+    void (*cb)(void *arg, betree_sub_t id, bool result, void *ctx);
     void *arg;
     int last_reason;
 };
