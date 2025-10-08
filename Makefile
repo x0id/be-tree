@@ -135,6 +135,7 @@ valgrind: $(TEST_BINARIES)
 	$(VALGRIND) build/tests/report_tests
 	$(VALGRIND) build/tests/special_tests
 	$(VALGRIND) build/tests/valid_tests
+	$(VALGRIND) build/tests/betree_search_cb_tests
 	#$(VALGRIND) build/tests/real_tests 1
 
 callgrind:

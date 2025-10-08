@@ -78,6 +78,7 @@ static struct attr_domain* make_attr_domain(
     }
     attr_domain->attr_var.attr = bstrdup(attr);
     attr_domain->attr_var.var = variable_id;
+    attr_domain->attr_var.data = NULL;
     attr_domain->bound = bound;
     attr_domain->allow_undefined = allow_undefined;
     return attr_domain;
