@@ -32,7 +32,7 @@ OBJECTS = \
 	$(GENERATED_OBJECTS)
 
 TEST_SOURCES=$(wildcard tests/*_tests.c)
-TEST_BINARIES=$(patsubst %.c,%,${TEST_SOURCES})
+TEST_BINARIES=$(patsubst tests/%.c,build/tests/%,${TEST_SOURCES})
 
 LEX?=flex
 YACC?=bison
@@ -78,11 +78,12 @@ neato:
 #build/libbetree.so: build $(OBJECTS)
 	#$(CC) -shared $(OBJECTS) -o $@
 
-build/libbetree.a: build $(OBJECTS)
+build/libbetree.a: $(OBJECTS) | build
+	@ls -ld build $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)
 
 build:
-	mkdir -p build
+	mkdir -p $@
 
 ################################################################################
 # Bison / Flex
@@ -108,11 +109,11 @@ test: $(TEST_BINARIES)
 	@bash ./tests/runtests.sh
 
 build/tests:
-	mkdir -p build/tests
+	mkdir -p $@
 
 #$(TEST_BINARIES): %: %.c build/tests build/libbetree.so
-$(TEST_BINARIES): %: %.c build/tests build/libbetree.a
-	$(CC) $(CFLAGS) -Isrc -o build/$@ $< build/libbetree.a $(LDFLAGS_TESTS)
+$(TEST_BINARIES): build/tests/%: tests/%.c build/libbetree.a | build/tests
+	$(CC) $(CFLAGS) -Isrc -o $@ $< build/libbetree.a $(LDFLAGS_TESTS)
 
 clean:
 	$(RM) $(OBJECTS)
