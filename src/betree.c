@@ -644,7 +644,7 @@ struct report* make_report()
     report->subs = NULL;
     report->cb = NULL;
     report->arg = NULL;
-    report->last_reason = -1;
+    report->last_var = NIL_VAR;
     return report;
 }
 

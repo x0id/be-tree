@@ -77,7 +77,7 @@ static enum short_circuit_e try_short_circuit(
 
 static enum short_circuit_e try_short_circuit_(
     size_t attr_domains_count, const struct short_circuit* short_circuit,
-    const uint64_t* undefined, int *last_reason)
+    const uint64_t* undefined, betree_var_t *last_var)
 {
     size_t count = attr_domains_count / 64 + 1;
     for(size_t i = 0; i < count; i++) {
@@ -89,7 +89,7 @@ static enum short_circuit_e try_short_circuit_(
         if(fail_mask) {
             for(size_t j = 0, mask = 1;; j++, mask <<= 1) {
                 if(mask & fail_mask) {
-                    *last_reason = j;
+                    *last_var = j;
                     break;
                 }
             }
@@ -131,7 +131,7 @@ bool match_sub_(size_t attr_domains_count,
     const uint64_t* undefined)
 {
     enum short_circuit_e short_circuit =
-        try_short_circuit_(attr_domains_count, &sub->short_circuit, undefined, &report->last_reason);
+        try_short_circuit_(attr_domains_count, &sub->short_circuit, undefined, &report->last_var);
     if(short_circuit != SHORT_CIRCUIT_NONE) {
         if(report != NULL) {
             report->shorted++;
@@ -2030,7 +2030,8 @@ bool betree_search_with_preds(const struct config* config,
     const struct cnode* cnode,
     struct report* report)
 {
-    uint64_t* undefined = make_undefined(config->attr_domain_count, preds);
+    size_t dom_cnt = config->attr_domain_count;
+    uint64_t* undefined = make_undefined(dom_cnt, preds);
     struct memoize memoize = make_memoize(config->pred_map->memoize_count);
     struct subs_to_eval subs;
     init_subs_to_eval(&subs);
@@ -2040,8 +2041,10 @@ bool betree_search_with_preds(const struct config* config,
         for(size_t i = 0; i < subs.count; i++) {
             const struct betree_sub* sub = subs.subs[i];
             report->evaluated++;
-            bool result = match_sub_(config->attr_domain_count, preds, sub, report, &memoize, undefined);
-            void *context = preds[report->last_reason]->attr_var.data;
+            bool result = match_sub_(dom_cnt, preds, sub, report, &memoize, undefined);
+            betree_var_t var_idx = report->last_var;
+            const struct betree_variable *var_ptr = var_idx < dom_cnt ? preds[var_idx] : NULL;
+            void *context = var_ptr ? var_ptr->attr_var.data : NULL;
             (*report->cb)(arg, sub->id, result, context);
         }
     }
@@ -2049,7 +2052,7 @@ bool betree_search_with_preds(const struct config* config,
         for(size_t i = 0; i < subs.count; i++) {
             const struct betree_sub* sub = subs.subs[i];
             report->evaluated++;
-            if(match_sub(config->attr_domain_count, preds, sub, report, &memoize, undefined) == true) {
+            if(match_sub(dom_cnt, preds, sub, report, &memoize, undefined) == true) {
                 add_sub(sub->id, report);
             }
         }

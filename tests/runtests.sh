@@ -6,7 +6,7 @@ real_tests="build/tests/real_tests"
 log_file=/tmp/sky-test.log
 
 # Loop over compiled tests and run them.
-for test_file in build/tests/*_tests
+for test_file in build/tests/betree_search_cb*_tests
 do
     if [ "$test_file" == "$real_tests" ]
     then

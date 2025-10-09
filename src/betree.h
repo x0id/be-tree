@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 typedef uint64_t betree_sub_t;
+typedef uint64_t betree_var_t;
 
 struct config;
 struct cnode;
@@ -22,8 +23,11 @@ struct report {
     betree_sub_t* subs;
     void (*cb)(void *arg, betree_sub_t id, bool result, void *ctx);
     void *arg;
-    int last_reason;
+    betree_var_t last_var;
 };
+
+#define NIL_VAR ((betree_var_t)-1)
+#define GEO_VAR ((betree_var_t)-2)
 
 struct report_counting {
     size_t evaluated;
