@@ -1110,7 +1110,8 @@ static bool match_list_expr_counting(
     }
 }
 
-static bool match_set_expr(const struct betree_variable** preds, const struct ast_set_expr set_expr)
+static bool match_set_expr(
+    const struct betree_variable** preds, const struct ast_set_expr set_expr, struct report* report)
 {
     struct set_left_value left = set_expr.left_value;
     struct set_right_value right = set_expr.right_value;
@@ -1119,6 +1120,9 @@ static bool match_set_expr(const struct betree_variable** preds, const struct as
         && right.value_type == AST_SET_RIGHT_VALUE_VARIABLE) {
         struct betree_integer_list* variable;
         bool is_variable_defined = get_integer_list_var(right.variable_value.var, preds, &variable);
+        if (report->cb) {
+            report->last_var = right.variable_value.var;
+        }
         if(is_variable_defined == false) {
             return false;
         }
@@ -1128,6 +1132,9 @@ static bool match_set_expr(const struct betree_variable** preds, const struct as
         && right.value_type == AST_SET_RIGHT_VALUE_VARIABLE) {
         struct betree_string_list* variable;
         bool is_variable_defined = get_string_list_var(right.variable_value.var, preds, &variable);
+        if (report->cb) {
+            report->last_var = right.variable_value.var;
+        }
         if(is_variable_defined == false) {
             return false;
         }
@@ -1137,6 +1144,9 @@ static bool match_set_expr(const struct betree_variable** preds, const struct as
         && right.value_type == AST_SET_RIGHT_VALUE_INTEGER_LIST) {
         int64_t variable;
         bool is_variable_defined = get_integer_var(left.variable_value.var, preds, &variable);
+        if (report->cb) {
+            report->last_var = left.variable_value.var;
+        }
         if(is_variable_defined == false) {
             return false;
         }
@@ -1146,6 +1156,9 @@ static bool match_set_expr(const struct betree_variable** preds, const struct as
         && right.value_type == AST_SET_RIGHT_VALUE_STRING_LIST) {
         struct string_value variable;
         bool is_variable_defined = get_string_var(left.variable_value.var, preds, &variable);
+        if (report->cb) {
+            report->last_var = left.variable_value.var;
+        }
         if(is_variable_defined == false) {
             return false;
         }
@@ -1504,18 +1517,27 @@ static bool match_node_inner(const struct betree_variable** preds,
         }
         case AST_TYPE_LIST_EXPR: {
             result = match_list_expr(preds, node->list_expr);
+            if (report->cb) {
+                report->last_var = node->list_expr.attr_var.var;
+            }
             break;
         }
         case AST_TYPE_SET_EXPR: {
-            result = match_set_expr(preds, node->set_expr);
+            result = match_set_expr(preds, node->set_expr, report);
             break;
         }
         case AST_TYPE_COMPARE_EXPR: {
             result = match_compare_expr(preds, node->compare_expr);
+            if (report->cb) {
+                report->last_var = node->compare_expr.attr_var.var;
+            }
             break;
         }
         case AST_TYPE_EQUALITY_EXPR: {
             result = match_equality_expr(preds, node->equality_expr);
+            if (report->cb) {
+                report->last_var = node->equality_expr.attr_var.var;
+            }
             break;
         }
         default: abort();
