@@ -97,7 +97,8 @@ struct memoize make_memoize_with_count(size_t pred_count, size_t* count);
 void match_be_tree(const struct attr_domain** attr_domains,
     const struct betree_variable** preds,
     const struct cnode* cnode,
-    struct subs_to_eval* subs);
+    struct subs_to_eval* subs,
+    struct report* report);
 void match_be_tree_node_counting(const struct attr_domain** attr_domains,
     const struct betree_variable** preds,
     const struct cnode* cnode,

@@ -81,8 +81,14 @@ static enum short_circuit_e try_short_circuit_(
 {
     size_t count = attr_domains_count / 64 + 1;
     for(size_t i = 0; i < count; i++) {
-        bool pass = short_circuit->pass[i] & undefined[i];
-        if(pass) {
+        uint64_t pass_mask = short_circuit->pass[i] & undefined[i];
+        if(pass_mask) {
+            for(size_t j = 0, mask = 1;; j++, mask <<= 1) {
+                if(mask & pass_mask) {
+                    *last_var = j;
+                    break;
+                }
+            }
             return SHORT_CIRCUIT_PASS;
         }
         uint64_t fail_mask = short_circuit->fail[i] & undefined[i];
@@ -219,7 +225,8 @@ static void search_cdir(const struct attr_domain** attr_domains,
     struct cdir* cdir,
     struct subs_to_eval* subs,
     bool open_left,
-    bool open_right);
+    bool open_right,
+    struct report* report);
 
 static void search_cdir_node_counting(const struct attr_domain** attr_domains,
     const struct betree_variable** preds,
@@ -237,7 +244,8 @@ static bool event_contains_variable(const struct betree_variable** preds, betree
 void match_be_tree(const struct attr_domain** attr_domains,
     const struct betree_variable** preds,
     const struct cnode* cnode,
-    struct subs_to_eval* subs)
+    struct subs_to_eval* subs,
+    struct report* report)
 {
     check_sub(cnode->lnode, subs);
     if(cnode->pdir != NULL) {
@@ -247,7 +255,7 @@ void match_be_tree(const struct attr_domain** attr_domains,
                 = get_attr_domain(attr_domains, pnode->attr_var.var);
             if(attr_domain->allow_undefined
                 || event_contains_variable(preds, pnode->attr_var.var)) {
-                search_cdir(attr_domains, preds, pnode->cdir, subs, true, true);
+                search_cdir(attr_domains, preds, pnode->cdir, subs, true, true, report);
             }
         }
     }
@@ -398,19 +406,61 @@ bool sub_is_enclosed(
     return false;
 }
 
+static void exclude_cdir(struct cdir* cdir, struct report* report, const char* ctx);
+
+static void exclude_pnode(struct pnode* pnode, struct report* report, const char* ctx) {
+    if (pnode != NULL && pnode->cdir != NULL) exclude_cdir(pnode->cdir, report, ctx);
+}
+
+static void exclude_pdir(struct pdir* pdir, struct report* report, const char* ctx) {
+    for (size_t i=0; i<pdir->pnode_count; i++) exclude_pnode(pdir->pnodes[i], report, ctx);
+}
+
+static void exclude_sub(struct betree_sub* sub, struct report* report, const char* ctx) {
+    if (sub != NULL) (*report->cb)(report->arg, sub->id, false, ctx);
+}
+
+static void exclude_lnode(struct lnode* lnode, struct report* report, const char* ctx) {
+    for (size_t i=0; i<lnode->sub_count; i++) exclude_sub(lnode->subs[i], report, ctx);
+}
+
+static void exclude_cnode(struct cnode* cnode, struct report* report, const char* ctx) {
+    if (cnode->lnode != NULL) exclude_lnode(cnode->lnode, report, ctx);
+    if (cnode->pdir != NULL) exclude_pdir(cnode->pdir, report, ctx);
+}
+
+static void exclude_cdir(struct cdir* cdir, struct report* report, const char* ctx) {
+    if (cdir->cnode != NULL) exclude_cnode(cdir->cnode, report, ctx);
+    if (cdir->lchild != NULL) exclude_cdir(cdir->lchild, report, ctx);
+    if (cdir->rchild != NULL) exclude_cdir(cdir->rchild, report, ctx);
+}
+
 static void search_cdir(const struct attr_domain** attr_domains,
     const struct betree_variable** preds,
     struct cdir* cdir,
     struct subs_to_eval* subs,
     bool open_left,
-    bool open_right)
+    bool open_right,
+    struct report* report)
 {
-    match_be_tree(attr_domains, preds, cdir->cnode, subs);
-    if(is_event_enclosed(preds, cdir->lchild, open_left, false)) {
-        search_cdir(attr_domains, preds, cdir->lchild, subs, open_left, false);
+    match_be_tree(attr_domains, preds, cdir->cnode, subs, report);
+
+    if (is_event_enclosed(preds, cdir->lchild, open_left, false)) {
+        search_cdir(attr_domains, preds, cdir->lchild, subs, open_left, false, report);
     }
-    if(is_event_enclosed(preds, cdir->rchild, false, open_right)) {
-        search_cdir(attr_domains, preds, cdir->rchild, subs, false, open_right);
+    else {
+        if (cdir->lchild != NULL && report != NULL && report->cb != NULL) {
+            exclude_cdir(cdir->lchild, report, cdir->lchild->attr_var.attr);
+        }
+    }
+
+    if (is_event_enclosed(preds, cdir->rchild, false, open_right)) {
+        search_cdir(attr_domains, preds, cdir->rchild, subs, false, open_right, report);
+    }
+    else {
+        if (cdir->rchild != NULL && report != NULL && report->cb != NULL) {
+            exclude_cdir(cdir->rchild, report, cdir->rchild->attr_var.attr);
+        }
     }
 }
 
@@ -2035,7 +2085,7 @@ bool betree_search_with_preds(const struct config* config,
     struct memoize memoize = make_memoize(config->pred_map->memoize_count);
     struct subs_to_eval subs;
     init_subs_to_eval(&subs);
-    match_be_tree((const struct attr_domain**)config->attr_domains, preds, cnode, &subs);
+    match_be_tree((const struct attr_domain**)config->attr_domains, preds, cnode, &subs, report);
     if (report->cb != NULL) {
         void *arg = report->arg;
         for(size_t i = 0; i < subs.count; i++) {
@@ -2044,7 +2094,12 @@ bool betree_search_with_preds(const struct config* config,
             bool result = match_sub_(dom_cnt, preds, sub, report, &memoize, undefined);
             betree_var_t var_idx = report->last_var;
             const struct betree_variable *var_ptr = var_idx < dom_cnt ? preds[var_idx] : NULL;
-            void *context = var_ptr ? var_ptr->attr_var.data : NULL;
+            const void *context = var_ptr ? var_ptr->attr_var.data : NULL;
+            // FIXME
+            // const void *context = var_idx < dom_cnt ? config->attr_domains[var_idx]->attr_var.attr : NULL;
+            // if (context == NULL) {
+            //     fprintf(stderr, "var %lu, dom %lu\r\n", var_idx, dom_cnt);
+            // }
             (*report->cb)(arg, sub->id, result, context);
         }
     }
@@ -2126,7 +2181,7 @@ bool betree_exists_with_preds(
     struct memoize memoize = make_memoize(config->pred_map->memoize_count);
     struct subs_to_eval subs;
     init_subs_to_eval(&subs);
-    match_be_tree((const struct attr_domain**)config->attr_domains, preds, cnode, &subs);
+    match_be_tree((const struct attr_domain**)config->attr_domains, preds, cnode, &subs, NULL);
     bool result = false;
     for(size_t i = 0; i < subs.count; i++) {
         const struct betree_sub* sub = subs.subs[i];

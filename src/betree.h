@@ -21,7 +21,7 @@ struct report {
     size_t memoized;
     size_t shorted;
     betree_sub_t* subs;
-    void (*cb)(void *arg, betree_sub_t id, bool result, void *ctx);
+    void (*cb)(void *arg, betree_sub_t id, bool result, const void *ctx);
     void *arg;
     betree_var_t last_var;
 };

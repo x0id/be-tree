@@ -39,9 +39,9 @@ static int test_one()
 static void *last_arg;
 static betree_sub_t last_id;
 static bool last_result;
-static void *last_context;
+static const void *last_context;
 
-static void hook(void *arg, betree_sub_t id, bool result, void *context) {
+static void hook(void *arg, betree_sub_t id, bool result, const void *context) {
     last_arg = arg;
     last_id = id;
     last_result = result;

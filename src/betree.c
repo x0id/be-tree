@@ -885,6 +885,7 @@ void betree_add_frequency_cap(struct betree_frequency_caps* frequency_caps,
 static struct betree_variable* betree_make_variable(const char* name, struct value value)
 {
     struct attr_var attr_var = make_attr_var(name, NULL);
+    attr_var.data = name;
     struct betree_variable* var = bmalloc(sizeof(*var));
     var->attr_var = attr_var;
     var->value = value;
