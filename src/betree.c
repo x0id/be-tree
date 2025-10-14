@@ -556,6 +556,8 @@ const struct betree_variable** make_environment(size_t attr_domain_count, const 
     return preds;
 }
 
+// void print_betree(const struct betree* betree);
+
 static bool betree_search_with_event_filled(const struct betree* betree, struct betree_event* event, struct report* report)
 {
     const struct betree_variable** variables
@@ -564,6 +566,7 @@ static bool betree_search_with_event_filled(const struct betree* betree, struct 
         fprintf(stderr, "Failed to validate event\n");
         return false;
     }
+    // print_betree(betree);
     return betree_search_with_preds(betree->config, variables, betree->cnode, report);
 }
 

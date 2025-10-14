@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "alloc.h"
 #include "ast.h"
@@ -796,4 +797,73 @@ void write_dot_file(const struct betree* tree)
     }
     wrt_dot_to_file(tree, f);
     fclose(f);
+}
+
+void print_cnode(const struct cnode* cnode, unsigned indent);
+void print_pdir(const struct pdir* pdir, unsigned indent);
+
+void print_lnode(const struct lnode* lnode, unsigned indent) {
+    if (lnode == NULL || lnode->sub_count == 0) return;
+    fprintf(stderr, "%*sEXPRs [%lu]\r\n", indent, "", lnode->sub_count);
+}
+
+unsigned count_slots(const struct cdir* cdir) {
+    if (cdir == NULL) return 0;
+    return 1 + count_slots(cdir->lchild) + count_slots(cdir->rchild);
+}
+
+unsigned count_subs(const struct cdir* cdir) {
+    if (cdir == NULL) return 0;
+    const struct cnode* cnode = cdir->cnode;
+    const struct lnode* lnode = cnode ? cnode->lnode : NULL;
+    unsigned count = lnode ? lnode->sub_count : 0;
+    return count + count_subs(cdir->lchild) + count_subs(cdir->rchild);
+}
+
+static unsigned total;
+
+void print_cdir(const struct cdir* cdir, unsigned indent) {
+    if (cdir == NULL) return;
+    if (cdir->parent_type == CNODE_PARENT_PNODE) {
+        assert(cdir->attr_var.var == cdir->pnode_parent->attr_var.var);
+        unsigned n = count_subs(cdir);
+        unsigned s = count_slots(cdir);
+        if (n > 0) {
+            total += n;
+            fprintf(stderr, " -> %u subs / %u slots\r\n", n, s);
+        }
+        else if (s > 0)
+            fprintf(stderr, " -> %u slots\r\n", s);
+        else
+            fprintf(stderr, "\r\n");
+    }
+    print_cdir(cdir->lchild, indent);
+    print_cdir(cdir->rchild, indent);
+    if (cdir->cnode) print_pdir(cdir->cnode->pdir, indent + 2);
+}
+
+void print_pnode(const struct pnode* pnode, unsigned indent) {
+    if (pnode == NULL) return;
+    fprintf(stderr, "%*sP %s : %f", indent, "", pnode->attr_var.attr, pnode->score);
+    print_cdir(pnode->cdir, indent);
+}
+
+void print_pdir(const struct pdir* pdir, unsigned indent) {
+    if (pdir == NULL) return;
+    for (size_t i = 0; i < pdir->pnode_count; i++)
+        print_pnode(pdir->pnodes[i], indent + 2);
+}
+
+void print_cnode(const struct cnode* cnode, unsigned indent) {
+    if (cnode == NULL) return;
+    print_lnode(cnode->lnode, indent);
+    print_pdir(cnode->pdir, indent);
+}
+
+void print_betree(const struct betree* betree) {
+    if (betree == NULL) return;
+    fprintf(stderr, "\r\n");
+    total = 0;
+    print_cnode(betree->cnode, 0);
+    fprintf(stderr, "total %u subs\r\n", total);
 }
