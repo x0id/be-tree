@@ -2101,7 +2101,7 @@ bool betree_search_with_preds(const struct config* config,
             report->evaluated++;
             bool result = match_sub_(dom_cnt, preds, sub, report, &memoize, undefined);
             betree_var_t var_idx = report->last_var;
-            const void *context = var_idx < dom_cnt ? config->attr_domains[var_idx]->attr_var.attr : NULL;
+            const void *context = var_idx < dom_cnt ? preds[var_idx]->attr_var.data : NULL;
             (*report->cb)(arg, sub->id, result, context);
         }
     }
