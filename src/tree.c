@@ -646,7 +646,7 @@ static size_t domain_bound_diff(const struct attr_domain* attr_domain)
 static double get_attr_domain_score(const struct attr_domain* attr_domain)
 {
     size_t diff = domain_bound_diff(attr_domain);
-    if(diff == 0) {
+    if(diff < 1) {
         diff = 1;
     }
     double num = attr_domain->allow_undefined ? 1. : 10.;
