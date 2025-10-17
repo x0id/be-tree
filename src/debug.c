@@ -812,6 +812,14 @@ unsigned count_slots(const struct cdir* cdir) {
     return 1 + count_slots(cdir->lchild) + count_slots(cdir->rchild);
 }
 
+unsigned count_parts(const struct cdir* cdir) {
+    if (cdir == NULL) return 0;
+    const struct cnode* cnode = cdir->cnode;
+    const struct pdir* pdir = cnode ? cnode->pdir : NULL;
+    unsigned count = pdir ? pdir->pnode_count : 0;
+    return count + count_parts(cdir->lchild) + count_parts(cdir->rchild);
+}
+
 unsigned count_subs(const struct cdir* cdir) {
     if (cdir == NULL) return 0;
     const struct cnode* cnode = cdir->cnode;
@@ -826,14 +834,22 @@ void print_cdir(const struct cdir* cdir, unsigned indent) {
     if (cdir == NULL) return;
     if (cdir->parent_type == CNODE_PARENT_PNODE) {
         assert(cdir->attr_var.var == cdir->pnode_parent->attr_var.var);
+        unsigned p = count_parts(cdir);
         unsigned n = count_subs(cdir);
         unsigned s = count_slots(cdir);
         if (n > 0) {
             total += n;
-            fprintf(stderr, " -> %u subs / %u slots\r\n", n, s);
+            if (p > 0)
+                fprintf(stderr, " -> %u part(s), %u sub(s) / %u slots\r\n", p, n, s);
+            else
+                fprintf(stderr, " -> %u sub(s) / %u slots\r\n", n, s);
         }
-        else if (s > 0)
-            fprintf(stderr, " -> %u slots\r\n", s);
+        else if (s > 0) {
+            if (p > 0)
+                fprintf(stderr, " -> %u part(s) / %u slots\r\n", p, s);
+            else
+                fprintf(stderr, " -> %u slots\r\n", s);
+        }
         else
             fprintf(stderr, "\r\n");
     }

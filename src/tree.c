@@ -659,7 +659,7 @@ static double get_score(const struct attr_domain** attr_domains, betree_var_t va
     const struct attr_domain* attr_domain = get_attr_domain(attr_domains, var);
     double attr_domain_score = get_attr_domain_score(attr_domain);
     double score = (double)count * attr_domain_score;
-    return score;
+    return score + 10000 * attr_domain->rank;
 }
 
 static double get_pnode_score(const struct attr_domain** attr_domains, struct pnode* pnode)
@@ -2101,7 +2101,8 @@ bool betree_search_with_preds(const struct config* config,
             report->evaluated++;
             bool result = match_sub_(dom_cnt, preds, sub, report, &memoize, undefined);
             betree_var_t var_idx = report->last_var;
-            const void *context = var_idx < dom_cnt ? preds[var_idx]->attr_var.data : NULL;
+            // FIXME
+            const void *context = var_idx < dom_cnt ? config->attr_domains[var_idx]->attr_var.attr : NULL;
             (*report->cb)(arg, sub->id, result, context);
         }
     }

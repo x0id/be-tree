@@ -109,6 +109,25 @@ void betree_add_string_list_variable(struct betree* betree, const char* name, bo
 void betree_add_segments_variable(struct betree* betree, const char* name, bool allow_undefined);
 void betree_add_frequency_caps_variable(struct betree* betree, const char* name, bool allow_undefined);
 
+void betree_add_ranked_boolean_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int ranked);
+void betree_add_ranked_integer_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max, int rank);
+void betree_add_ranked_float_variable(
+    struct betree* betree, const char* name, bool allow_undefined, double min, double max, int rank);
+void betree_add_ranked_string_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank);
+void betree_add_ranked_integer_list_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max, int rank);
+void betree_add_ranked_integer_enum_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank);
+void betree_add_ranked_string_list_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank);
+void betree_add_ranked_segments_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int rank);
+void betree_add_ranked_frequency_caps_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int rank);
+
 bool betree_change_boundaries(struct betree* tree, const char* expr);
 
 const struct betree_sub* betree_make_sub(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr);

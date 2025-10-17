@@ -69,7 +69,7 @@ void free_config(struct config* config)
 }
 
 static struct attr_domain* make_attr_domain(
-    const char* attr, betree_var_t variable_id, struct value_bound bound, bool allow_undefined)
+    const char* attr, betree_var_t variable_id, struct value_bound bound, bool allow_undefined, int rank)
 {
     struct attr_domain* attr_domain = bcalloc(sizeof(*attr_domain));
     if(attr_domain == NULL) {
@@ -81,14 +81,15 @@ static struct attr_domain* make_attr_domain(
     attr_domain->attr_var.data = NULL;
     attr_domain->bound = bound;
     attr_domain->allow_undefined = allow_undefined;
+    attr_domain->rank = rank;
     return attr_domain;
 }
 
 static void add_attr_domain(
-    struct config* config, const char* attr, struct value_bound bound, bool allow_undefined)
+    struct config* config, const char* attr, struct value_bound bound, bool allow_undefined, int rank)
 {
     betree_var_t variable_id = config->attr_domain_count;
-    struct attr_domain* attr_domain = make_attr_domain(attr, variable_id, bound, allow_undefined);
+    struct attr_domain* attr_domain = make_attr_domain(attr, variable_id, bound, allow_undefined, rank);
     if(config->attr_domain_count == 0) {
         config->attr_domains = bcalloc(sizeof(*config->attr_domains));
         if(config->attr_domains == NULL) {
@@ -109,11 +110,17 @@ static void add_attr_domain(
     config->attr_domain_count++;
 }
 
+void add_attr_domain_bounded_ranked_i(
+    struct config* config, const char* attr, bool allow_undefined, int64_t min, int64_t max, int rank)
+{
+    struct value_bound bound = { .value_type = BETREE_INTEGER, .imin = min, .imax = max };
+    add_attr_domain(config, attr, bound, allow_undefined, rank);
+}
+
 void add_attr_domain_bounded_i(
     struct config* config, const char* attr, bool allow_undefined, int64_t min, int64_t max)
 {
-    struct value_bound bound = { .value_type = BETREE_INTEGER, .imin = min, .imax = max };
-    add_attr_domain(config, attr, bound, allow_undefined);
+    add_attr_domain_bounded_ranked_i(config, attr, allow_undefined, min, max, 0);
 }
 
 void add_attr_domain_i(struct config* config, const char* attr, bool allow_undefined)
@@ -126,11 +133,17 @@ void add_attr_domain_ie(struct config* config, const char* attr, bool allow_unde
     add_attr_domain_bounded_ie(config, attr, allow_undefined, SIZE_MAX);
 }
 
+void add_attr_domain_bounded_ranked_f(
+    struct config* config, const char* attr, bool allow_undefined, double min, double max, int rank)
+{
+    struct value_bound bound = { .value_type = BETREE_FLOAT, .fmin = min, .fmax = max };
+    add_attr_domain(config, attr, bound, allow_undefined, rank);
+}
+
 void add_attr_domain_bounded_f(
     struct config* config, const char* attr, bool allow_undefined, double min, double max)
 {
-    struct value_bound bound = { .value_type = BETREE_FLOAT, .fmin = min, .fmax = max };
-    add_attr_domain(config, attr, bound, allow_undefined);
+    add_attr_domain_bounded_ranked_f(config, attr, allow_undefined, min, max, 0);
 }
 
 void add_attr_domain_f(struct config* config, const char* attr, bool allow_undefined)
@@ -138,10 +151,15 @@ void add_attr_domain_f(struct config* config, const char* attr, bool allow_undef
     add_attr_domain_bounded_f(config, attr, allow_undefined, -DBL_MAX, DBL_MAX);
 }
 
-void add_attr_domain_b(struct config* config, const char* attr, bool allow_undefined)
+void add_attr_domain_ranked_b(struct config* config, const char* attr, bool allow_undefined, int rank)
 {
     struct value_bound bound = { .value_type = BETREE_BOOLEAN, .bmin = false, .bmax = true };
-    add_attr_domain(config, attr, bound, allow_undefined);
+    add_attr_domain(config, attr, bound, allow_undefined, rank);
+}
+
+void add_attr_domain_b(struct config* config, const char* attr, bool allow_undefined)
+{
+    add_attr_domain_ranked_b(config, attr, allow_undefined, 0);
 }
 
 void add_attr_domain_s(struct config* config, const char* attr, bool allow_undefined)
@@ -149,18 +167,30 @@ void add_attr_domain_s(struct config* config, const char* attr, bool allow_undef
     add_attr_domain_bounded_s(config, attr, allow_undefined, SIZE_MAX);
 }
 
+void add_attr_domain_bounded_ranked_s(
+    struct config* config, const char* attr, bool allow_undefined, size_t max, int rank)
+{
+    struct value_bound bound = { .value_type = BETREE_STRING, .smin = 0, .smax = max - 1 };
+    add_attr_domain(config, attr, bound, allow_undefined, rank);
+}
+
 void add_attr_domain_bounded_s(
     struct config* config, const char* attr, bool allow_undefined, size_t max)
 {
-    struct value_bound bound = { .value_type = BETREE_STRING, .smin = 0, .smax = max - 1 };
-    add_attr_domain(config, attr, bound, allow_undefined);
+    add_attr_domain_bounded_ranked_s(config, attr, allow_undefined, max, 0);
+}
+
+void add_attr_domain_bounded_ranked_ie(
+    struct config* config, const char* attr, bool allow_undefined, size_t max, int rank)
+{
+    struct value_bound bound = { .value_type = BETREE_INTEGER_ENUM, .smin = 0, .smax = max - 1 };
+    add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
 void add_attr_domain_bounded_ie(
     struct config* config, const char* attr, bool allow_undefined, size_t max)
 {
-    struct value_bound bound = { .value_type = BETREE_INTEGER_ENUM, .smin = 0, .smax = max - 1 };
-    add_attr_domain(config, attr, bound, allow_undefined);
+    add_attr_domain_bounded_ranked_ie(config, attr, allow_undefined, max, 0);
 }
 
 void add_attr_domain_il(struct config* config, const char* attr, bool allow_undefined)
@@ -168,11 +198,17 @@ void add_attr_domain_il(struct config* config, const char* attr, bool allow_unde
     add_attr_domain_bounded_il(config, attr, allow_undefined, INT64_MIN, INT64_MAX);
 }
 
+void add_attr_domain_bounded_ranked_il(
+    struct config* config, const char* attr, bool allow_undefined, int64_t min, int64_t max, int rank)
+{
+    struct value_bound bound = { .value_type = BETREE_INTEGER_LIST, .imin = min, .imax = max };
+    add_attr_domain(config, attr, bound, allow_undefined, rank);
+}
+
 void add_attr_domain_bounded_il(
     struct config* config, const char* attr, bool allow_undefined, int64_t min, int64_t max)
 {
-    struct value_bound bound = { .value_type = BETREE_INTEGER_LIST, .imin = min, .imax = max };
-    add_attr_domain(config, attr, bound, allow_undefined);
+    add_attr_domain_bounded_ranked_il(config, attr, allow_undefined, min, max, 0);
 }
 
 void add_attr_domain_sl(struct config* config, const char* attr, bool allow_undefined)
@@ -180,23 +216,39 @@ void add_attr_domain_sl(struct config* config, const char* attr, bool allow_unde
     add_attr_domain_bounded_sl(config, attr, allow_undefined, SIZE_MAX);
 }
 
+void add_attr_domain_bounded_ranked_sl(
+    struct config* config, const char* attr, bool allow_undefined, size_t max, int rank)
+{
+    struct value_bound bound = { .value_type = BETREE_STRING_LIST, .smin = 0, .smax = max - 1 };
+    add_attr_domain(config, attr, bound, allow_undefined, rank);
+}
+
 void add_attr_domain_bounded_sl(
     struct config* config, const char* attr, bool allow_undefined, size_t max)
 {
-    struct value_bound bound = { .value_type = BETREE_STRING_LIST, .smin = 0, .smax = max - 1 };
-    add_attr_domain(config, attr, bound, allow_undefined);
+    add_attr_domain_bounded_ranked_sl(config, attr, allow_undefined, max, 0);
+}
+
+void add_attr_domain_ranked_segments(struct config* config, const char* attr, bool allow_undefined, int rank)
+{
+    struct value_bound bound = { .value_type = BETREE_SEGMENTS };
+    add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
 void add_attr_domain_segments(struct config* config, const char* attr, bool allow_undefined)
 {
-    struct value_bound bound = { .value_type = BETREE_SEGMENTS };
-    add_attr_domain(config, attr, bound, allow_undefined);
+    add_attr_domain_ranked_segments(config, attr, allow_undefined, 0);
+}
+
+void add_attr_domain_ranked_frequency(struct config* config, const char* attr, bool allow_undefined, int rank)
+{
+    struct value_bound bound = { .value_type = BETREE_FREQUENCY_CAPS };
+    add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
 void add_attr_domain_frequency(struct config* config, const char* attr, bool allow_undefined)
 {
-    struct value_bound bound = { .value_type = BETREE_FREQUENCY_CAPS };
-    add_attr_domain(config, attr, bound, allow_undefined);
+    add_attr_domain_ranked_frequency(config, attr, allow_undefined, 0);
 }
 
 const struct attr_domain* get_attr_domain(
@@ -375,4 +427,3 @@ bool is_variable_allow_undefined(const struct config* config, const betree_var_t
 {
     return config->attr_domains[variable_id]->allow_undefined;
 }
-

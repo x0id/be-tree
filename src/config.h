@@ -12,6 +12,7 @@ struct attr_domain {
     struct attr_var attr_var;
     struct value_bound bound;
     bool allow_undefined;
+    int rank;
 };
 
 struct ast_node;
@@ -72,6 +73,23 @@ void add_attr_domain_bounded_s(struct config* config, const char* attr, bool all
 void add_attr_domain_bounded_il(struct config* config, const char* attr, bool allow_undefined, int64_t min, int64_t max);
 void add_attr_domain_bounded_sl(struct config* config, const char* attr, bool allow_undefined, size_t max);
 void add_attr_domain_bounded_ie(struct config* config, const char* attr, bool allow_undefined, size_t max);
+
+void add_attr_domain_bounded_ranked_i(
+    struct config* config, const char* attr, bool allow_undefined, int64_t min, int64_t max, int rank);
+void add_attr_domain_bounded_ranked_f(
+    struct config* config, const char* attr, bool allow_undefined, double min, double max, int rank);
+void add_attr_domain_ranked_b(struct config* config, const char* attr, bool allow_undefined, int rank);
+void add_attr_domain_bounded_ranked_s(
+    struct config* config, const char* attr, bool allow_undefined, size_t max, int rank);
+void add_attr_domain_bounded_ranked_ie(
+    struct config* config, const char* attr, bool allow_undefined, size_t max, int rank);
+void add_attr_domain_bounded_ranked_il(
+    struct config* config, const char* attr, bool allow_undefined, int64_t min, int64_t max, int rank);
+void add_attr_domain_bounded_ranked_sl(
+    struct config* config, const char* attr, bool allow_undefined, size_t max, int rank);
+
+void add_attr_domain_ranked_segments(struct config* config, const char* attr, bool allow_undefined, int rank);
+void add_attr_domain_ranked_frequency(struct config* config, const char* attr, bool allow_undefined, int rank);
 const struct attr_domain* get_attr_domain(const struct attr_domain** attr_domains, betree_var_t variable_id);
 bool is_variable_allow_undefined(const struct config* config, const betree_var_t variable_id);
 

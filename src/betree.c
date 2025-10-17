@@ -727,9 +727,20 @@ void betree_free(struct betree* betree)
     bfree(betree);
 }
 
+void betree_add_ranked_boolean_variable(struct betree* betree, const char* name, bool allow_undefined, int rank)
+{
+    add_attr_domain_ranked_b(betree->config, name, allow_undefined, rank);
+}
+
 void betree_add_boolean_variable(struct betree* betree, const char* name, bool allow_undefined)
 {
     add_attr_domain_b(betree->config, name, allow_undefined);
+}
+
+void betree_add_ranked_integer_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max, int rank)
+{
+    add_attr_domain_bounded_ranked_i(betree->config, name, allow_undefined, min, max, rank);
 }
 
 void betree_add_integer_variable(
@@ -738,10 +749,22 @@ void betree_add_integer_variable(
     add_attr_domain_bounded_i(betree->config, name, allow_undefined, min, max);
 }
 
+void betree_add_ranked_float_variable(
+    struct betree* betree, const char* name, bool allow_undefined, double min, double max, int rank)
+{
+    add_attr_domain_bounded_ranked_f(betree->config, name, allow_undefined, min, max, rank);
+}
+
 void betree_add_float_variable(
     struct betree* betree, const char* name, bool allow_undefined, double min, double max)
 {
     add_attr_domain_bounded_f(betree->config, name, allow_undefined, min, max);
+}
+
+void betree_add_ranked_string_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank)
+{
+    add_attr_domain_bounded_ranked_s(betree->config, name, allow_undefined, count, rank);
 }
 
 void betree_add_string_variable(
@@ -750,15 +773,33 @@ void betree_add_string_variable(
     add_attr_domain_bounded_s(betree->config, name, allow_undefined, count);
 }
 
+void betree_add_ranked_integer_list_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max, int rank)
+{
+    add_attr_domain_bounded_ranked_il(betree->config, name, allow_undefined, min, max, rank);
+}
+
 void betree_add_integer_list_variable(
     struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max)
 {
     add_attr_domain_bounded_il(betree->config, name, allow_undefined, min, max);
 }
 
+void betree_add_ranked_integer_enum_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank)
+{
+    add_attr_domain_bounded_ranked_ie(betree->config, name, allow_undefined, count, rank);
+}
+
 void betree_add_integer_enum_variable(struct betree* betree, const char* name, bool allow_undefined, size_t count)
 {
     add_attr_domain_bounded_ie(betree->config, name, allow_undefined, count);
+}
+
+void betree_add_ranked_string_list_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank)
+{
+    add_attr_domain_bounded_ranked_sl(betree->config, name, allow_undefined, count, rank);
 }
 
 void betree_add_string_list_variable(
@@ -767,9 +808,20 @@ void betree_add_string_list_variable(
     add_attr_domain_bounded_sl(betree->config, name, allow_undefined, count);
 }
 
+void betree_add_ranked_segments_variable(struct betree* betree, const char* name, bool allow_undefined, int rank)
+{
+    add_attr_domain_ranked_segments(betree->config, name, allow_undefined, rank);
+}
+
 void betree_add_segments_variable(struct betree* betree, const char* name, bool allow_undefined)
 {
     add_attr_domain_segments(betree->config, name, allow_undefined);
+}
+
+void betree_add_ranked_frequency_caps_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int rank)
+{
+    add_attr_domain_ranked_frequency(betree->config, name, allow_undefined, rank);
 }
 
 void betree_add_frequency_caps_variable(
@@ -1009,4 +1061,3 @@ void betree_set_variable(struct betree_event* event, size_t index, struct betree
 {
     event->variables[index] = variable;
 }
-
