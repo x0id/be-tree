@@ -63,10 +63,6 @@ endif
 .DEFAULT_GOAL := build/libbetree.a
 all: build/libbetree.a
 
-gen:
-	make $(YACC_INTERMEDIATES)
-	make $(LEX_INTERMEDIATES)
-
 dev: $(GENERATED_OBJECTS) build/libbetree.a test valgrind
 
 dot:
@@ -95,16 +91,32 @@ build:
 ################################################################################
 
 %.c %.h: %.l
-	$(LEX) --header-file=$*.h -o $@ $<
-%.c: %.y
-	$(YACC) $(YFLAGS) -o $@ $<
+	$(LEX) --header-file=$*.h -o $*.c $<
+
+%.c %.h: %.y
+	$(YACC) $(YFLAGS) -o $*.c $<
+
+# Dependencies for generated files
+# Parsers generate both .c and .h files
+src/parser.c src/parser.h: src/parser.y
+src/event_parser.c src/event_parser.h: src/event_parser.y
+
+# Lexers depend on parser headers and generate both .c and .h files
+src/lexer.c src/lexer.h: src/lexer.l src/parser.h
+src/event_lexer.c src/event_lexer.h: src/event_lexer.l src/event_parser.h
+
+# Object files depend on their sources and related headers
+src/parser.o: src/parser.c src/parser.h src/lexer.h
+src/event_parser.o: src/event_parser.c src/event_parser.h src/event_lexer.h
+src/lexer.o: src/lexer.c src/lexer.h src/parser.h
+src/event_lexer.o: src/event_lexer.c src/event_lexer.h src/event_parser.h
 
 ################################################################################
 # BETree
 ################################################################################
 
 src/%.o: src/%.c
-	$(CC) $(DEFINES) $(CFLAGS) -c -o $@ $^ $(LDFLAGS)
+	$(CC) $(DEFINES) $(CFLAGS) -c -o $@ $< $(LDFLAGS)
 
 ################################################################################
 # Tests
