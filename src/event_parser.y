@@ -20,7 +20,7 @@
 %}
 
 // %debug
-%pure-parser
+%define api.pure
 %lex-param {void *scanner}
 %parse-param {void *scanner}
 %define api.prefix {zz}

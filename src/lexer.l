@@ -9,6 +9,7 @@
         yylval->string[yyleng - 2] = 0;\
     }
     #define SAVE_IDENTIFIER yylval->string = bstrdup(yytext)
+    #define SAVE_ANNOTATION yylval->string = bstrdup(yytext)
     #define SAVE_INTEGER yylval->integer_value = strtoll(yytext, NULL, 10)
     #define SAVE_FLOAT yylval->float_value = atof(yytext)
     #define TOKEN(t) (yylval->token = t)
@@ -68,6 +69,7 @@
 \"(\\.|[^"\\])*\"           SAVE_STRING; return TSTRING;
 \'(\\.|[^'\\])*\'           SAVE_STRING; return TSTRING;
 [a-zA-Z_][a-zA-Z0-9_-]*     SAVE_IDENTIFIER; return TIDENTIFIER;
+\[[a-zA-Z_][a-zA-Z0-9_-]*\] SAVE_ANNOTATION; return TANNOTATION;
 [0-9]+                      SAVE_INTEGER; return TINTEGER;
 [0-9]+\.[0-9]*              SAVE_FLOAT; return TFLOAT;
 .                           printf("Unknown token! (%s)\n", yytext); yyterminate();

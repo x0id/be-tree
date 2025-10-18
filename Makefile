@@ -62,6 +62,11 @@ endif
 #dev: build/libbetree.so build/libbetree.a test valgrind
 .DEFAULT_GOAL := build/libbetree.a
 all: build/libbetree.a
+
+gen:
+	make $(YACC_INTERMEDIATES)
+	make $(LEX_INTERMEDIATES)
+
 dev: $(GENERATED_OBJECTS) build/libbetree.a test valgrind
 
 dot:
@@ -89,9 +94,9 @@ build:
 # Bison / Flex
 ################################################################################
 
-%.c %.h: | %.l
+%.c %.h: %.l
 	$(LEX) --header-file=$*.h -o $@ $<
-%.c: | %.y
+%.c: %.y
 	$(YACC) $(YFLAGS) -o $@ $<
 
 ################################################################################
@@ -170,4 +175,4 @@ build-test-benchmark: build/libbetree.a
 	gcc -o testbenchmark tests/real_tests.c -Isrc -I/usr/include -I/usr/local/include  build/libbetree.a  $(LDFLAGS_TESTS)
 	gcc -o testbenchmark_err tests/real_tests_err.c -Isrc -I/usr/include -I/usr/local/include  build/libbetree.a  $(LDFLAGS_TESTS)
 
-.PHONY: clean realclean test valgrind
+.PHONY: gen dev clean realclean test valgrind
