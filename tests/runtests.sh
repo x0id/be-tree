@@ -5,8 +5,11 @@ real_tests="build/tests/real_tests"
 
 log_file=/tmp/sky-test.log
 
+# Use TESTS pattern if provided, otherwise default to all tests
+TESTS=${TESTS:-*}
+
 # Loop over compiled tests and run them.
-for test_file in build/tests/*_tests
+for test_file in build/tests/${TESTS}_tests
 do
     if [ "$test_file" == "$real_tests" ]
     then

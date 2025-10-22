@@ -31,7 +31,9 @@ OBJECTS = \
 	$(patsubst %.c,%.o,$(SOURCES)) \
 	$(GENERATED_OBJECTS)
 
-TEST_SOURCES=$(wildcard tests/*_tests.c)
+# Allow filtering tests via TESTS variable (e.g., TESTS='*_cb_*' make test)
+TESTS ?= *
+TEST_SOURCES=$(wildcard tests/$(TESTS)_tests.c)
 TEST_BINARIES=$(patsubst tests/%.c,build/tests/%,${TEST_SOURCES})
 
 LEX?=flex
@@ -123,7 +125,7 @@ src/%.o: src/%.c
 ################################################################################
 
 test: $(TEST_BINARIES)
-	@bash ./tests/runtests.sh
+	@TESTS='$(TESTS)' bash ./tests/runtests.sh
 
 build/tests:
 	mkdir -p $@
