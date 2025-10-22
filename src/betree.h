@@ -21,7 +21,7 @@ struct report {
     size_t memoized;
     size_t shorted;
     betree_sub_t* subs;
-    void (*cb)(void *arg, betree_sub_t id, bool result, const void *ctx);
+    void (*cb)(void* arg, void* data, bool result, const void* ctx);
     void *arg;
     betree_var_t last_var;
 };
@@ -130,7 +130,7 @@ void betree_add_ranked_frequency_caps_variable(
 
 bool betree_change_boundaries(struct betree* tree, const char* expr);
 
-const struct betree_sub* betree_make_sub(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr);
+struct betree_sub* betree_make_sub(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr);
 bool betree_insert_sub(struct betree* tree, const struct betree_sub* sub);
 
 /*

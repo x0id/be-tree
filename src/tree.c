@@ -417,7 +417,7 @@ static void exclude_pdir(struct pdir* pdir, struct report* report, const char* c
 }
 
 static void exclude_sub(struct betree_sub* sub, struct report* report, const char* ctx) {
-    if (sub != NULL) (*report->cb)(report->arg, sub->id, false, ctx);
+    if (sub != NULL) (*report->cb)(report->arg, sub->data, false, ctx);
 }
 
 static void exclude_lnode(struct lnode* lnode, struct report* report, const char* ctx) {
@@ -1880,6 +1880,7 @@ struct betree_sub* make_sub(struct config* config, betree_sub_t id, struct ast_n
         abort();
     }
     sub->id = id;
+    sub->data = (void *)id;
     size_t count = config->attr_domain_count / 64 + 1;
     sub->attr_vars = bcalloc(count * sizeof(*sub->attr_vars));
     sub->expr = expr;
@@ -2103,7 +2104,7 @@ bool betree_search_with_preds(const struct config* config,
             betree_var_t var_idx = report->last_var;
             // FIXME
             const void *context = var_idx < dom_cnt ? config->attr_domains[var_idx]->attr_var.attr : NULL;
-            (*report->cb)(arg, sub->id, result, context);
+            (*report->cb)(arg, sub->data, result, context);
         }
     }
     else {

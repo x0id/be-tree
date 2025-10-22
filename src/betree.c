@@ -502,7 +502,7 @@ bool betree_insert_with_constants(struct betree* tree,
     return insert_be_tree(tree->config, sub, tree->cnode, NULL);
 }
 
-const struct betree_sub* betree_make_sub(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr)
+struct betree_sub* betree_make_sub(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr)
 {
     struct ast_node* node;
     if(parse(expr, &node) != 0) {

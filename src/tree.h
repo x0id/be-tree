@@ -24,6 +24,7 @@ struct betree_sub {
     uint64_t* attr_vars;
     const struct ast_node* expr;
     struct short_circuit short_circuit;
+    void *data;
 };
 
 struct cnode;

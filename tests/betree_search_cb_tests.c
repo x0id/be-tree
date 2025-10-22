@@ -37,13 +37,13 @@ static int test_one()
 }
 
 static void *last_arg;
-static betree_sub_t last_id;
+static void *last_data;
 static bool last_result;
 static const void *last_context;
 
-static void hook(void *arg, betree_sub_t id, bool result, const void *context) {
+static void hook(void *arg, void *data, bool result, const void *context) {
     last_arg = arg;
-    last_id = id;
+    last_data = data;
     last_result = result;
     last_context = context;
 }
@@ -54,25 +54,25 @@ static int test_two()
 
     betree_add_boolean_variable(tree, "stop", false);
 
-    betree_insert(tree, 1, "stop");
+    struct betree_sub* sub = betree_make_sub(tree, 1, 0, NULL, "stop");
+    mu_assert(sub != NULL, "");
+    sub->data = (void *)555;
+    mu_assert(betree_insert_sub(tree, sub), "");
 
     struct report *report = make_report();
     report->cb = hook;
     report->arg = (void *)123;
 
     struct betree_event* event = betree_make_event(tree);
-
     struct betree_variable *var = betree_make_boolean_variable("stop", false);
-    var->attr_var.data = (void *)444;
-
     betree_set_variable(event, 0, var);
     betree_search_with_event(tree, event, report);
 
     mu_assert(report->matched == 0, "");
     mu_assert(last_arg == (void *)123, "");
-    mu_assert(last_id == 1, "");
+    mu_assert(last_data == (void *)555, "");
     mu_assert(last_result == false, "");
-    mu_assert(last_context == (void *)444, "");
+    mu_assert(!strcmp((char *)last_context, "stop"), "");
 
     free_report(report);
     betree_free_event(event);
@@ -82,18 +82,15 @@ static int test_two()
     report->arg = (void *)456;
 
     event = betree_make_event(tree);
-
     var = betree_make_boolean_variable("stop", true);
-    var->attr_var.data = (void *)555;
-
     betree_set_variable(event, 0, var);
     betree_search_with_event(tree, event, report);
 
     mu_assert(report->matched == 0, "");
     mu_assert(last_arg == (void *)456, "");
-    mu_assert(last_id == 1, "");
+    mu_assert(last_data == (void *)555, "");
     mu_assert(last_result == true, "");
-    mu_assert(last_context == (void *)555, "");
+    mu_assert(!strcmp((char *)last_context, "stop"), "");
 
     free_report(report);
     betree_free_event(event);
