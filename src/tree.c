@@ -83,22 +83,12 @@ static enum short_circuit_e try_short_circuit_(
     for(size_t i = 0; i < count; i++) {
         uint64_t pass_mask = short_circuit->pass[i] & undefined[i];
         if(pass_mask) {
-            for(size_t j = 0, mask = 1;; j++, mask <<= 1) {
-                if(mask & pass_mask) {
-                    *last_var = j;
-                    break;
-                }
-            }
+            *last_var = __builtin_ctzll(pass_mask);
             return SHORT_CIRCUIT_PASS;
         }
         uint64_t fail_mask = short_circuit->fail[i] & undefined[i];
         if(fail_mask) {
-            for(size_t j = 0, mask = 1;; j++, mask <<= 1) {
-                if(mask & fail_mask) {
-                    *last_var = j;
-                    break;
-                }
-            }
+            *last_var = __builtin_ctzll(fail_mask);
             return SHORT_CIRCUIT_FAIL;
         }
     }
