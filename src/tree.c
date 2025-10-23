@@ -452,8 +452,8 @@ static void search_cdir(const struct config* config,
         if (cdir->lchild != NULL && report != NULL && report->cb != NULL) {
             size_t dom_cnt = config->attr_domain_count;
             betree_var_t var_idx = cdir->lchild->attr_var.var;
-            const struct betree_variable *var_ptr = var_idx < dom_cnt ? preds[var_idx] : NULL;
-            const void *context = var_ptr ? var_ptr->attr_var.data : NULL;
+            const struct attr_domain *ad_ptr = var_idx < dom_cnt ? config->attr_domains[var_idx] : NULL;
+            const void *context = ad_ptr ? ad_ptr->attr_var.data : NULL;
             exclude_cdir(cdir->lchild, report, context);
         }
     }
@@ -465,8 +465,8 @@ static void search_cdir(const struct config* config,
         if (cdir->rchild != NULL && report != NULL && report->cb != NULL) {
             size_t dom_cnt = config->attr_domain_count;
             betree_var_t var_idx = cdir->rchild->attr_var.var;
-            const struct betree_variable *var_ptr = var_idx < dom_cnt ? preds[var_idx] : NULL;
-            const void *context = var_ptr ? var_ptr->attr_var.data : NULL;
+            const struct attr_domain *ad_ptr = var_idx < dom_cnt ? config->attr_domains[var_idx] : NULL;
+            const void *context = ad_ptr ? ad_ptr->attr_var.data : NULL;
             exclude_cdir(cdir->rchild, report, context);
         }
     }
@@ -2102,8 +2102,8 @@ bool betree_search_with_preds(const struct config* config,
             report->evaluated++;
             bool result = match_sub_(dom_cnt, preds, sub, report, &memoize, undefined);
             betree_var_t var_idx = report->last_var;
-            // FIXME
-            const void *context = var_idx < dom_cnt ? config->attr_domains[var_idx]->attr_var.attr : NULL;
+            const struct attr_domain *ad_ptr = var_idx < dom_cnt ? config->attr_domains[var_idx] : NULL;
+            const void *context = ad_ptr ? ad_ptr->attr_var.data : NULL;
             (*report->cb)(arg, sub->data, result, context);
         }
     }
