@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "alloc.h"
 #include "ast.h"
@@ -684,6 +685,7 @@ static void betree_init_with_config(struct betree* betree, struct config* config
 {
     betree->config = config;
     betree->cnode = make_cnode(betree->config, NULL);
+    betree->subs_data = NULL;
 }
 
 void betree_init(struct betree* betree)
@@ -1064,5 +1066,6 @@ void betree_set_variable(struct betree_event* event, size_t index, struct betree
 
 void betree_prepare_sub_data(struct betree* tree)
 {
-    prepare_cnode_subs(tree->cnode, tree->data);
+    assert(tree->subs_data != NULL);
+    prepare_cnode_subs(tree->cnode, tree->subs_data);
 }

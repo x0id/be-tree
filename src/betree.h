@@ -14,7 +14,7 @@ struct subs_data;
 struct betree {
     struct config* config;
     struct cnode* cnode;
-    struct subs_data *data;
+    struct subs_data* subs_data;
 };
 
 struct report {
