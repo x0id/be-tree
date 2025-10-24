@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "alloc.h"
 #include "ast.h"
@@ -396,33 +397,16 @@ bool sub_is_enclosed(
     return false;
 }
 
-static void exclude_cdir(struct cdir* cdir, struct report* report, const char* ctx);
+static inline void exclude_cdir(const struct config* config, struct cdir* cdir, struct report* report) {
+    if (cdir == NULL || report == NULL || report->cba == NULL) return;
+    assert(cdir->subs_data_array != NULL);
 
-static void exclude_pnode(struct pnode* pnode, struct report* report, const char* ctx) {
-    if (pnode != NULL && pnode->cdir != NULL) exclude_cdir(pnode->cdir, report, ctx);
-}
+    size_t dom_cnt = config->attr_domain_count;
+    betree_var_t var_idx = cdir->attr_var.var;
+    const struct attr_domain *ad_ptr = var_idx < dom_cnt ? config->attr_domains[var_idx] : NULL;
+    const void *context = ad_ptr ? ad_ptr->attr_var.data : NULL;
 
-static void exclude_pdir(struct pdir* pdir, struct report* report, const char* ctx) {
-    for (size_t i=0; i<pdir->pnode_count; i++) exclude_pnode(pdir->pnodes[i], report, ctx);
-}
-
-static void exclude_sub(struct betree_sub* sub, struct report* report, const char* ctx) {
-    if (sub != NULL) (*report->cb)(report->arg, sub->data, false, ctx);
-}
-
-static void exclude_lnode(struct lnode* lnode, struct report* report, const char* ctx) {
-    for (size_t i=0; i<lnode->sub_count; i++) exclude_sub(lnode->subs[i], report, ctx);
-}
-
-static void exclude_cnode(struct cnode* cnode, struct report* report, const char* ctx) {
-    if (cnode->lnode != NULL) exclude_lnode(cnode->lnode, report, ctx);
-    if (cnode->pdir != NULL) exclude_pdir(cnode->pdir, report, ctx);
-}
-
-static void exclude_cdir(struct cdir* cdir, struct report* report, const char* ctx) {
-    if (cdir->cnode != NULL) exclude_cnode(cdir->cnode, report, ctx);
-    if (cdir->lchild != NULL) exclude_cdir(cdir->lchild, report, ctx);
-    if (cdir->rchild != NULL) exclude_cdir(cdir->rchild, report, ctx);
+    (*report->cba)(report->arg, cdir->subs_data_array, cdir->subs_data_count, context);
 }
 
 static void search_cdir(const struct config* config,
@@ -435,31 +419,15 @@ static void search_cdir(const struct config* config,
 {
     match_be_tree(config, preds, cdir->cnode, subs, report);
 
-    if (is_event_enclosed(preds, cdir->lchild, open_left, false)) {
+    if (is_event_enclosed(preds, cdir->lchild, open_left, false))
         search_cdir(config, preds, cdir->lchild, subs, open_left, false, report);
-    }
-    else {
-        if (cdir->lchild != NULL && report != NULL && report->cb != NULL) {
-            size_t dom_cnt = config->attr_domain_count;
-            betree_var_t var_idx = cdir->lchild->attr_var.var;
-            const struct attr_domain *ad_ptr = var_idx < dom_cnt ? config->attr_domains[var_idx] : NULL;
-            const void *context = ad_ptr ? ad_ptr->attr_var.data : NULL;
-            exclude_cdir(cdir->lchild, report, context);
-        }
-    }
+    else
+        exclude_cdir(config, cdir->lchild, report);
 
-    if (is_event_enclosed(preds, cdir->rchild, false, open_right)) {
+    if (is_event_enclosed(preds, cdir->rchild, false, open_right))
         search_cdir(config, preds, cdir->rchild, subs, false, open_right, report);
-    }
-    else {
-        if (cdir->rchild != NULL && report != NULL && report->cb != NULL) {
-            size_t dom_cnt = config->attr_domain_count;
-            betree_var_t var_idx = cdir->rchild->attr_var.var;
-            const struct attr_domain *ad_ptr = var_idx < dom_cnt ? config->attr_domains[var_idx] : NULL;
-            const void *context = ad_ptr ? ad_ptr->attr_var.data : NULL;
-            exclude_cdir(cdir->rchild, report, context);
-        }
-    }
+    else
+        exclude_cdir(config, cdir->rchild, report);
 }
 
 static void search_cdir_ids(const struct attr_domain** attr_domains,
@@ -2340,4 +2308,42 @@ bool validate_variables(const struct config* config, const struct betree_variabl
         }
     }
     return true;
+}
+
+static void extract_cdir_subs(struct cdir* cdir, struct subs_data* acc);
+
+static void extract_pnode_subs(struct pnode* pnode, struct subs_data* acc) {
+    if (pnode != NULL && pnode->cdir != NULL) extract_cdir_subs(pnode->cdir, acc);
+}
+
+static void extract_pdir_subs(struct pdir* pdir, struct subs_data* acc) {
+    for (size_t i=0; i<pdir->pnode_count; i++) extract_pnode_subs(pdir->pnodes[i], acc);
+}
+
+static void extract_lnode_subs(struct lnode* lnode, struct subs_data* acc) {
+    for (size_t i=0; i<lnode->sub_count; i++) {
+        struct betree_sub* sub = lnode->subs[i];
+        if (sub != NULL) {
+            assert(acc->count < acc->limit);
+            acc->array[acc->count++] = sub->data;
+        }
+    }
+}
+
+static void extract_cnode_subs(struct cnode* cnode, struct subs_data* acc) {
+    if (cnode->lnode != NULL) extract_lnode_subs(cnode->lnode, acc);
+    if (cnode->pdir != NULL) extract_pdir_subs(cnode->pdir, acc);
+}
+
+static void extract_cdir_subs(struct cdir* cdir, struct subs_data* acc) {
+    size_t offset = acc->count;
+    cdir->subs_data_array = &acc->array[offset];
+    if (cdir->cnode != NULL) extract_cnode_subs(cdir->cnode, acc);
+    if (cdir->lchild != NULL) extract_cdir_subs(cdir->lchild, acc);
+    if (cdir->rchild != NULL) extract_cdir_subs(cdir->rchild, acc);
+    cdir->subs_data_count = acc->count - offset;
+}
+
+void prepare_cnode_subs(struct cnode* cnode, struct subs_data* data) {
+    extract_cnode_subs(cnode, data);
 }

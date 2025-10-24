@@ -9,10 +9,12 @@ typedef uint64_t betree_var_t;
 
 struct config;
 struct cnode;
+struct subs_data;
 
 struct betree {
     struct config* config;
     struct cnode* cnode;
+    struct subs_data *data;
 };
 
 struct report {
@@ -22,6 +24,7 @@ struct report {
     size_t shorted;
     betree_sub_t* subs;
     void (*cb)(void* arg, void* data, bool result, const void* ctx);
+    void (*cba)(void* arg, void** data, size_t count, const void* ctx);
     void *arg;
     betree_var_t last_var;
 };
@@ -191,3 +194,4 @@ void betree_free_segments(struct betree_segments* value);
 void betree_free_frequency_cap(struct betree_frequency_cap* value);
 void betree_free_frequency_caps(struct betree_frequency_caps* value);
 
+void betree_prepare_sub_data(struct betree* tree);

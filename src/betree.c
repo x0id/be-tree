@@ -1061,3 +1061,8 @@ void betree_set_variable(struct betree_event* event, size_t index, struct betree
 {
     event->variables[index] = variable;
 }
+
+void betree_prepare_sub_data(struct betree* tree)
+{
+    prepare_cnode_subs(tree->cnode, tree->data);
+}

@@ -27,6 +27,12 @@ struct betree_sub {
     void *data;
 };
 
+struct subs_data {
+    void** array;
+    size_t count;
+    size_t limit;
+};
+
 struct cnode;
 
 struct lnode {
@@ -74,6 +80,10 @@ struct cdir {
     struct cnode* cnode;
     struct cdir* lchild;
     struct cdir* rchild;
+    struct {
+        void** subs_data_array;
+        size_t subs_data_count;
+    };
 };
 
 struct pdir {
@@ -172,3 +182,4 @@ bool insert_be_tree(const struct config* config, const struct betree_sub* sub, s
 
 void sort_event_lists(struct betree_event* event);
 
+void prepare_cnode_subs(struct cnode* cnode, struct subs_data* data);
