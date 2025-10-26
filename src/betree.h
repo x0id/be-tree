@@ -24,7 +24,7 @@ struct report {
     size_t shorted;
     betree_sub_t* subs;
     void (*cb)(void* arg, void* data, bool result, const void* ctx);
-    void (*cba)(void* arg, void** data, size_t count, const void* ctx);
+    void (*cba)(void* arg, void* data, const void* ctx);
     void *arg;
     betree_var_t last_var;
 };

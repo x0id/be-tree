@@ -406,7 +406,7 @@ static inline void exclude_cdir(const struct config* config, struct cdir* cdir, 
     const struct attr_domain *ad_ptr = var_idx < dom_cnt ? config->attr_domains[var_idx] : NULL;
     const void *context = ad_ptr ? ad_ptr->attr_var.data : NULL;
 
-    (*report->cba)(report->arg, cdir->subs_data_array, cdir->subs_data_count, context);
+    (*report->cba)(report->arg, cdir->ext_data, context);
 }
 
 static void search_cdir(const struct config* config,
@@ -2337,11 +2337,10 @@ static void extract_cnode_subs(struct cnode* cnode, struct subs_data* acc) {
 
 static void extract_cdir_subs(struct cdir* cdir, struct subs_data* acc) {
     size_t offset = acc->count;
-    cdir->subs_data_array = &acc->array[offset];
     if (cdir->cnode != NULL) extract_cnode_subs(cdir->cnode, acc);
     if (cdir->lchild != NULL) extract_cdir_subs(cdir->lchild, acc);
     if (cdir->rchild != NULL) extract_cdir_subs(cdir->rchild, acc);
-    cdir->subs_data_count = acc->count - offset;
+    (*acc->aggregate)(&acc->array[offset], acc->count - offset, &cdir->ext_data);
 }
 
 void prepare_cnode_subs(struct cnode* cnode, struct subs_data* data) {

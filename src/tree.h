@@ -31,6 +31,7 @@ struct subs_data {
     void** array;
     size_t count;
     size_t limit;
+    void (*aggregate)(void** list, size_t count, void** result);
 };
 
 struct cnode;
@@ -80,10 +81,7 @@ struct cdir {
     struct cnode* cnode;
     struct cdir* lchild;
     struct cdir* rchild;
-    struct {
-        void** subs_data_array;
-        size_t subs_data_count;
-    };
+    void* ext_data;
 };
 
 struct pdir {
