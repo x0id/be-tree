@@ -72,7 +72,7 @@ static int test_two()
     mu_assert(last_arg == (void *)123, "");
     mu_assert(last_data == (void *)555, "");
     mu_assert(last_result == false, "");
-    mu_assert(!strcmp((char *)last_context, "stop"), "");
+    mu_assert((betree_var_t)last_context == 0, "");
 
     free_report(report);
     betree_free_event(event);
@@ -90,7 +90,7 @@ static int test_two()
     mu_assert(last_arg == (void *)456, "");
     mu_assert(last_data == (void *)555, "");
     mu_assert(last_result == true, "");
-    mu_assert(!strcmp((char *)last_context, "stop"), "");
+    mu_assert((betree_var_t)last_context == 0, "");
 
     free_report(report);
     betree_free_event(event);

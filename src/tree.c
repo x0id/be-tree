@@ -397,16 +397,10 @@ bool sub_is_enclosed(
     return false;
 }
 
-static inline void exclude_cdir(const struct config* config, struct cdir* cdir, struct report* report) {
+static inline void exclude_cdir(struct cdir* cdir, struct report* report) {
     if (cdir == NULL || report == NULL || report->cba == NULL) return;
     assert(cdir->subs_data_array != NULL);
-
-    size_t dom_cnt = config->attr_domain_count;
-    betree_var_t var_idx = cdir->attr_var.var;
-    const struct attr_domain *ad_ptr = var_idx < dom_cnt ? config->attr_domains[var_idx] : NULL;
-    const void *context = ad_ptr ? ad_ptr->attr_var.data : NULL;
-
-    (*report->cba)(report->arg, cdir->subs_data_array, cdir->subs_data_count, context);
+    (*report->cba)(report->arg, cdir->subs_data_array, cdir->subs_data_count, (void*)cdir->attr_var.var);
 }
 
 static void search_cdir(const struct config* config,
@@ -422,12 +416,12 @@ static void search_cdir(const struct config* config,
     if (is_event_enclosed(preds, cdir->lchild, open_left, false))
         search_cdir(config, preds, cdir->lchild, subs, open_left, false, report);
     else
-        exclude_cdir(config, cdir->lchild, report);
+        exclude_cdir(cdir->lchild, report);
 
     if (is_event_enclosed(preds, cdir->rchild, false, open_right))
         search_cdir(config, preds, cdir->rchild, subs, false, open_right, report);
     else
-        exclude_cdir(config, cdir->rchild, report);
+        exclude_cdir(cdir->rchild, report);
 }
 
 static void search_cdir_ids(const struct attr_domain** attr_domains,
@@ -2054,15 +2048,12 @@ bool betree_search_with_preds(const struct config* config,
     init_subs_to_eval(&subs);
     match_be_tree(config, preds, cnode, &subs, report);
     if (report->cb != NULL) {
-        void *arg = report->arg;
+        void* arg = report->arg;
         for(size_t i = 0; i < subs.count; i++) {
             const struct betree_sub* sub = subs.subs[i];
             report->evaluated++;
             bool result = match_sub_(dom_cnt, preds, sub, report, &memoize, undefined);
-            betree_var_t var_idx = report->last_var;
-            const struct attr_domain *ad_ptr = var_idx < dom_cnt ? config->attr_domains[var_idx] : NULL;
-            const void *context = ad_ptr ? ad_ptr->attr_var.data : NULL;
-            (*report->cb)(arg, sub->data, result, context);
+            (*report->cb)(arg, sub->data, result, (void*)report->last_var);
         }
     }
     else {
