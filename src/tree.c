@@ -127,9 +127,20 @@ bool match_sub_(size_t attr_domains_count,
     struct memoize* memoize,
     const uint64_t* undefined)
 {
+    betree_var_t _prev_var = report->last_var;
     enum short_circuit_e short_circuit =
         try_short_circuit_(attr_domains_count, &sub->short_circuit, undefined, &report->last_var);
     if(short_circuit != SHORT_CIRCUIT_NONE) {
+        if (report->trace) {
+            const char* _from = (_prev_var < report->config->attr_domain_count)
+                ? get_attr_for_id(report->config, _prev_var) : "NIL";
+            const char* _to = (report->last_var < report->config->attr_domain_count)
+                ? get_attr_for_id(report->config, report->last_var) : "?";
+            fprintf(stderr, "    sub: %llu short_circuit=%d: %s(%llu) -> %s(%llu) [tree.c:%d]\n",
+                (unsigned long long)report->trace_sub_id,
+                short_circuit, _from, (unsigned long long)_prev_var,
+                _to, (unsigned long long)report->last_var, __LINE__);
+        }
         if(report != NULL) {
             report->shorted++;
         }
@@ -2041,9 +2052,14 @@ bool betree_search_with_preds(const struct config* config,
     const struct cnode* cnode,
     struct report* report)
 {
+    report->config = config;
     size_t dom_cnt = config->attr_domain_count;
     uint64_t* undefined = make_undefined(dom_cnt, preds);
-    struct memoize memoize = make_memoize(config->pred_map->memoize_count);
+    size_t pred_count = config->pred_map->memoize_count;
+    struct memoize memoize = make_memoize(pred_count);
+    if (report->cb != NULL) {
+        report->memoize_vars = bmalloc(pred_count * sizeof(*report->memoize_vars));
+    }
     struct subs_to_eval subs;
     init_subs_to_eval(&subs);
     match_be_tree(config, preds, cnode, &subs, report);
@@ -2052,7 +2068,20 @@ bool betree_search_with_preds(const struct config* config,
         for(size_t i = 0; i < subs.count; i++) {
             const struct betree_sub* sub = subs.subs[i];
             report->evaluated++;
+#ifdef TRACE_LAST_VAR
+            report->trace = report->is_trc_cb != NULL && report->is_trc_cb(arg, sub->data);
+            report->trace_sub_id = sub->id;
+#endif
             bool result = match_sub_(dom_cnt, preds, sub, report, &memoize, undefined);
+#ifdef TRACE_LAST_VAR
+            if (report->trace) {
+                const char* _vn = (report->last_var < config->attr_domain_count)
+                    ? get_attr_for_id(config, report->last_var) : "?";
+                fprintf(stderr, "  match_sub_ result=%d last_var=%s(%llu) sub_id=%llu [tree.c:%d]\n",
+                    result, _vn, (unsigned long long)report->last_var, (unsigned long long)sub->id, __LINE__);
+            }
+            report->trace = false;
+#endif
             (*report->cb)(arg, sub->data, result, (void*)report->last_var);
         }
     }
@@ -2067,6 +2096,10 @@ bool betree_search_with_preds(const struct config* config,
     }
     bfree(subs.subs);
     free_memoize(memoize);
+    if (report->memoize_vars != NULL) {
+        bfree(report->memoize_vars);
+        report->memoize_vars = NULL;
+    }
     bfree(undefined);
     bfree(preds);
     return true;
