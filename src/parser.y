@@ -62,7 +62,7 @@
 %token<token> TISNOTNULL TISNULL TISEMPTY
 %token<token> TTRUE TFALSE
 
-%token<string> TSTRING TIDENTIFIER
+%token<string> TSTRING TIDENTIFIER TANNOTATION
 %token<integer_value> TINTEGER
 %token<float_value> TFLOAT
 
@@ -120,6 +120,7 @@ string_list_loop    : string                                { $$ = make_string_l
 ;       
 
 expr                : TLPAREN expr TRPAREN                  { $$ = $2; }
+                    | TANNOTATION '{' expr '}'              { $$ = $3; }
                     | num_comp_expr                         { $$ = $1; }
                     | eq_expr                               { $$ = $1; }
                     | set_expr                              { $$ = $1; }

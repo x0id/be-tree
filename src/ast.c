@@ -9,6 +9,7 @@
 #include "alloc.h"
 #include "ast.h"
 #include "betree.h"
+#include "config.h"
 #include "error.h"
 #include "hashmap.h"
 #include "memoize.h"
@@ -17,6 +18,31 @@
 #include "utils.h"
 #include "value.h"
 #include "var.h"
+
+#ifdef TRACE_LAST_VAR
+#define SET_LAST_VAR(report, var_id) do { \
+    if ((report)->cb) { \
+        betree_var_t _new = (var_id); \
+        if ((report)->trace && _new != (report)->last_var) { \
+            const char* _from = ((report)->last_var < (report)->config->attr_domain_count) \
+                ? get_attr_for_id((report)->config, (report)->last_var) : "NIL"; \
+            const char* _to = (_new < (report)->config->attr_domain_count) \
+                ? get_attr_for_id((report)->config, _new) : "?"; \
+            fprintf(stderr, "    sub: %llu last_var: %s(%llu) -> %s(%llu) [%s:%d]\n", \
+                (unsigned long long)(report)->trace_sub_id, \
+                _from, (unsigned long long)(report)->last_var, \
+                _to, (unsigned long long)_new, __FILE__, __LINE__); \
+        } \
+        (report)->last_var = _new; \
+    } \
+} while(0)
+#else
+#define SET_LAST_VAR(report, var_id) do { \
+    if ((report)->cb) { \
+        (report)->last_var = (var_id); \
+    } \
+} while(0)
+#endif
 
 struct ast_node* ast_node_create()
 {
@@ -1110,7 +1136,8 @@ static bool match_list_expr_counting(
     }
 }
 
-static bool match_set_expr(const struct betree_variable** preds, const struct ast_set_expr set_expr)
+static bool match_set_expr(
+    const struct betree_variable** preds, const struct ast_set_expr set_expr, struct report* report)
 {
     struct set_left_value left = set_expr.left_value;
     struct set_right_value right = set_expr.right_value;
@@ -1119,6 +1146,7 @@ static bool match_set_expr(const struct betree_variable** preds, const struct as
         && right.value_type == AST_SET_RIGHT_VALUE_VARIABLE) {
         struct betree_integer_list* variable;
         bool is_variable_defined = get_integer_list_var(right.variable_value.var, preds, &variable);
+        SET_LAST_VAR(report, right.variable_value.var);
         if(is_variable_defined == false) {
             return false;
         }
@@ -1128,6 +1156,7 @@ static bool match_set_expr(const struct betree_variable** preds, const struct as
         && right.value_type == AST_SET_RIGHT_VALUE_VARIABLE) {
         struct betree_string_list* variable;
         bool is_variable_defined = get_string_list_var(right.variable_value.var, preds, &variable);
+        SET_LAST_VAR(report, right.variable_value.var);
         if(is_variable_defined == false) {
             return false;
         }
@@ -1137,6 +1166,7 @@ static bool match_set_expr(const struct betree_variable** preds, const struct as
         && right.value_type == AST_SET_RIGHT_VALUE_INTEGER_LIST) {
         int64_t variable;
         bool is_variable_defined = get_integer_var(left.variable_value.var, preds, &variable);
+        SET_LAST_VAR(report, left.variable_value.var);
         if(is_variable_defined == false) {
             return false;
         }
@@ -1146,6 +1176,7 @@ static bool match_set_expr(const struct betree_variable** preds, const struct as
         && right.value_type == AST_SET_RIGHT_VALUE_STRING_LIST) {
         struct string_value variable;
         bool is_variable_defined = get_string_var(left.variable_value.var, preds, &variable);
+        SET_LAST_VAR(report, left.variable_value.var);
         if(is_variable_defined == false) {
             return false;
         }
@@ -1380,6 +1411,7 @@ static bool match_bool_expr(const struct betree_variable** preds,
         case AST_BOOL_VARIABLE: {
             bool value;
             bool is_variable_defined = get_bool_var(bool_expr.variable.var, preds, &value);
+            SET_LAST_VAR(report, bool_expr.variable.var);
             if(is_variable_defined == false) {
                 return false;
             }
@@ -1446,6 +1478,21 @@ static bool match_is_null_expr(const struct betree_variable** preds,
     }
 }
 
+static betree_var_t special_expr_var(const struct ast_special_expr *special_expr) {
+    switch(special_expr->type) {
+        case AST_SPECIAL_FREQUENCY:
+            return special_expr->frequency.attr_var.var;
+        case AST_SPECIAL_SEGMENT:
+            return special_expr->segment.attr_var.var;
+        case AST_SPECIAL_GEO:
+            return GEO_VAR;
+        case AST_SPECIAL_STRING:
+            return special_expr->string.attr_var.var;
+        default:
+            abort();
+    }
+}
+
 static bool match_node_inner(const struct betree_variable** preds,
     const struct ast_node* node,
     struct memoize* memoize,
@@ -1455,12 +1502,18 @@ static bool match_node_inner(const struct betree_variable** preds,
         if(test_bit(memoize->pass, node->memoize_id)) {
             if(report != NULL) {
                 report->memoized++;
+                if(report->memoize_vars != NULL) {
+                    SET_LAST_VAR(report, report->memoize_vars[node->memoize_id]);
+                }
             }
             return true;
         }
         if(test_bit(memoize->fail, node->memoize_id)) {
             if(report != NULL) {
                 report->memoized++;
+                if(report->memoize_vars != NULL) {
+                    SET_LAST_VAR(report, report->memoize_vars[node->memoize_id]);
+                }
             }
             return false;
         }
@@ -1469,9 +1522,11 @@ static bool match_node_inner(const struct betree_variable** preds,
     switch(node->type) {
         case AST_TYPE_IS_NULL_EXPR:
             result = match_is_null_expr(preds, node->is_null_expr);
+            SET_LAST_VAR(report, node->is_null_expr.attr_var.var);
             break;
         case AST_TYPE_SPECIAL_EXPR: {
             result = match_special_expr(preds, node->special_expr);
+            SET_LAST_VAR(report, special_expr_var(&node->special_expr));
             break;
         }
         case AST_TYPE_BOOL_EXPR: {
@@ -1480,23 +1535,29 @@ static bool match_node_inner(const struct betree_variable** preds,
         }
         case AST_TYPE_LIST_EXPR: {
             result = match_list_expr(preds, node->list_expr);
+            SET_LAST_VAR(report, node->list_expr.attr_var.var);
             break;
         }
         case AST_TYPE_SET_EXPR: {
-            result = match_set_expr(preds, node->set_expr);
+            result = match_set_expr(preds, node->set_expr, report);
             break;
         }
         case AST_TYPE_COMPARE_EXPR: {
             result = match_compare_expr(preds, node->compare_expr);
+            SET_LAST_VAR(report, node->compare_expr.attr_var.var);
             break;
         }
         case AST_TYPE_EQUALITY_EXPR: {
             result = match_equality_expr(preds, node->equality_expr);
+            SET_LAST_VAR(report, node->equality_expr.attr_var.var);
             break;
         }
         default: abort();
     }
     if(node->memoize_id != INVALID_PRED) {
+        if(report != NULL && report->memoize_vars != NULL) {
+            report->memoize_vars[node->memoize_id] = report->last_var;
+        }
         if(result) {
             set_bit(memoize->pass, node->memoize_id);
         }

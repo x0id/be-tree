@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.5.1.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -31,8 +31,9 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Undocumented macros, especially those whose name start with YY_,
-   are private implementation details.  Do not rely on them.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
 #ifndef YY_ZZ_SRC_EVENT_PARSER_H_INCLUDED
 # define YY_ZZ_SRC_EVENT_PARSER_H_INCLUDED
@@ -52,26 +53,49 @@
 extern int zzdebug;
 #endif
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef ZZTOKENTYPE
 # define ZZTOKENTYPE
   enum zztokentype
   {
-    EVENT_LCURLY = 258,
-    EVENT_RCURLY = 259,
-    EVENT_LSQUARE = 260,
-    EVENT_RSQUARE = 261,
-    EVENT_COMMA = 262,
-    EVENT_COLON = 263,
-    EVENT_MINUS = 264,
-    EVENT_NULL = 265,
-    EVENT_TRUE = 266,
-    EVENT_FALSE = 267,
-    EVENT_INTEGER = 268,
-    EVENT_FLOAT = 269,
-    EVENT_STRING = 270
+    ZZEMPTY = -2,
+    ZZEOF = 0,                     /* "end of file"  */
+    ZZerror = 256,                 /* error  */
+    ZZUNDEF = 257,                 /* "invalid token"  */
+    EVENT_LCURLY = 258,            /* EVENT_LCURLY  */
+    EVENT_RCURLY = 259,            /* EVENT_RCURLY  */
+    EVENT_LSQUARE = 260,           /* EVENT_LSQUARE  */
+    EVENT_RSQUARE = 261,           /* EVENT_RSQUARE  */
+    EVENT_COMMA = 262,             /* EVENT_COMMA  */
+    EVENT_COLON = 263,             /* EVENT_COLON  */
+    EVENT_MINUS = 264,             /* EVENT_MINUS  */
+    EVENT_NULL = 265,              /* EVENT_NULL  */
+    EVENT_TRUE = 266,              /* EVENT_TRUE  */
+    EVENT_FALSE = 267,             /* EVENT_FALSE  */
+    EVENT_INTEGER = 268,           /* EVENT_INTEGER  */
+    EVENT_FLOAT = 269,             /* EVENT_FLOAT  */
+    EVENT_STRING = 270             /* EVENT_STRING  */
   };
+  typedef enum zztokentype zztoken_kind_t;
 #endif
+/* Token kinds.  */
+#define ZZEMPTY -2
+#define ZZEOF 0
+#define ZZerror 256
+#define ZZUNDEF 257
+#define EVENT_LCURLY 258
+#define EVENT_RCURLY 259
+#define EVENT_LSQUARE 260
+#define EVENT_RSQUARE 261
+#define EVENT_COMMA 262
+#define EVENT_COLON 263
+#define EVENT_MINUS 264
+#define EVENT_NULL 265
+#define EVENT_TRUE 266
+#define EVENT_FALSE 267
+#define EVENT_INTEGER 268
+#define EVENT_FLOAT 269
+#define EVENT_STRING 270
 
 /* Value type.  */
 #if ! defined ZZSTYPE && ! defined ZZSTYPE_IS_DECLARED
@@ -98,7 +122,7 @@ union ZZSTYPE
 
     struct betree_event* event;
 
-#line 102 "src/event_parser.h"
+#line 126 "src/event_parser.h"
 
 };
 typedef union ZZSTYPE ZZSTYPE;
@@ -108,6 +132,8 @@ typedef union ZZSTYPE ZZSTYPE;
 
 
 
+
 int zzparse (void *scanner);
+
 
 #endif /* !YY_ZZ_SRC_EVENT_PARSER_H_INCLUDED  */

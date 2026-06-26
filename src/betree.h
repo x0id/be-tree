@@ -5,13 +5,16 @@
 #include <stdlib.h>
 
 typedef uint64_t betree_sub_t;
+typedef uint64_t betree_var_t;
 
 struct config;
 struct cnode;
+struct subs_data;
 
 struct betree {
     struct config* config;
     struct cnode* cnode;
+    struct subs_data* subs_data;
 };
 
 struct report {
@@ -20,7 +23,19 @@ struct report {
     size_t memoized;
     size_t shorted;
     betree_sub_t* subs;
+    void (*cb)(void* arg, void* data, bool result, const void* ctx);
+    void (*cba)(void* arg, void** data, size_t count, const void* ctx);
+    void *arg;
+    betree_var_t last_var;
+    betree_var_t* memoize_vars;
+    bool trace;
+    bool (*is_trc_cb)(void* arg, void* data);
+    const struct config* config;
+    betree_sub_t trace_sub_id;
 };
+
+#define NIL_VAR ((betree_var_t)-1)
+#define GEO_VAR ((betree_var_t)-2)
 
 struct report_counting {
     size_t evaluated;
@@ -102,9 +117,28 @@ void betree_add_string_list_variable(struct betree* betree, const char* name, bo
 void betree_add_segments_variable(struct betree* betree, const char* name, bool allow_undefined);
 void betree_add_frequency_caps_variable(struct betree* betree, const char* name, bool allow_undefined);
 
+void betree_add_ranked_boolean_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int ranked);
+void betree_add_ranked_integer_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max, int rank);
+void betree_add_ranked_float_variable(
+    struct betree* betree, const char* name, bool allow_undefined, double min, double max, int rank);
+void betree_add_ranked_string_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank);
+void betree_add_ranked_integer_list_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max, int rank);
+void betree_add_ranked_integer_enum_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank);
+void betree_add_ranked_string_list_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank);
+void betree_add_ranked_segments_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int rank);
+void betree_add_ranked_frequency_caps_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int rank);
+
 bool betree_change_boundaries(struct betree* tree, const char* expr);
 
-const struct betree_sub* betree_make_sub(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr);
+struct betree_sub* betree_make_sub(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr);
 bool betree_insert_sub(struct betree* tree, const struct betree_sub* sub);
 
 /*
@@ -165,3 +199,4 @@ void betree_free_segments(struct betree_segments* value);
 void betree_free_frequency_cap(struct betree_frequency_cap* value);
 void betree_free_frequency_caps(struct betree_frequency_caps* value);
 
+void betree_prepare_sub_data(struct betree* tree);

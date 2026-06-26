@@ -24,6 +24,13 @@ struct betree_sub {
     uint64_t* attr_vars;
     const struct ast_node* expr;
     struct short_circuit short_circuit;
+    void *data;
+};
+
+struct subs_data {
+    void** array;
+    size_t count;
+    size_t limit;
 };
 
 struct cnode;
@@ -73,6 +80,10 @@ struct cdir {
     struct cnode* cnode;
     struct cdir* lchild;
     struct cdir* rchild;
+    struct {
+        void** subs_data_array;
+        size_t subs_data_count;
+    };
 };
 
 struct pdir {
@@ -94,10 +105,11 @@ void init_subs_to_eval_ext(struct subs_to_eval* subs, size_t init);
 uint64_t* make_undefined(size_t attr_domain_count, const struct betree_variable** preds);
 uint64_t* make_undefined_with_count(size_t attr_domain_count, const struct betree_variable** preds, size_t* count);
 struct memoize make_memoize_with_count(size_t pred_count, size_t* count);
-void match_be_tree(const struct attr_domain** attr_domains,
+void match_be_tree(const struct config* config,
     const struct betree_variable** preds,
     const struct cnode* cnode,
-    struct subs_to_eval* subs);
+    struct subs_to_eval* subs,
+    struct report* report);
 void match_be_tree_node_counting(const struct attr_domain** attr_domains,
     const struct betree_variable** preds,
     const struct cnode* cnode,
@@ -170,3 +182,4 @@ bool insert_be_tree(const struct config* config, const struct betree_sub* sub, s
 
 void sort_event_lists(struct betree_event* event);
 
+void prepare_cnode_subs(struct cnode* cnode, struct subs_data* data);

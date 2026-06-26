@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "alloc.h"
 #include "ast.h"
@@ -502,7 +503,7 @@ bool betree_insert_with_constants(struct betree* tree,
     return insert_be_tree(tree->config, sub, tree->cnode, NULL);
 }
 
-const struct betree_sub* betree_make_sub(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr)
+struct betree_sub* betree_make_sub(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr)
 {
     struct ast_node* node;
     if(parse(expr, &node) != 0) {
@@ -556,6 +557,8 @@ const struct betree_variable** make_environment(size_t attr_domain_count, const 
     return preds;
 }
 
+// void print_betree(const struct betree* betree);
+
 static bool betree_search_with_event_filled(const struct betree* betree, struct betree_event* event, struct report* report)
 {
     const struct betree_variable** variables
@@ -564,6 +567,7 @@ static bool betree_search_with_event_filled(const struct betree* betree, struct 
         fprintf(stderr, "Failed to validate event\n");
         return false;
     }
+    // print_betree(betree);
     return betree_search_with_preds(betree->config, variables, betree->cnode, report);
 }
 
@@ -642,6 +646,9 @@ struct report* make_report()
     report->memoized = 0;
     report->shorted = 0;
     report->subs = NULL;
+    report->cb = NULL;
+    report->arg = NULL;
+    report->last_var = NIL_VAR;
     return report;
 }
 
@@ -678,6 +685,7 @@ static void betree_init_with_config(struct betree* betree, struct config* config
 {
     betree->config = config;
     betree->cnode = make_cnode(betree->config, NULL);
+    betree->subs_data = NULL;
 }
 
 void betree_init(struct betree* betree)
@@ -721,9 +729,20 @@ void betree_free(struct betree* betree)
     bfree(betree);
 }
 
+void betree_add_ranked_boolean_variable(struct betree* betree, const char* name, bool allow_undefined, int rank)
+{
+    add_attr_domain_ranked_b(betree->config, name, allow_undefined, rank);
+}
+
 void betree_add_boolean_variable(struct betree* betree, const char* name, bool allow_undefined)
 {
     add_attr_domain_b(betree->config, name, allow_undefined);
+}
+
+void betree_add_ranked_integer_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max, int rank)
+{
+    add_attr_domain_bounded_ranked_i(betree->config, name, allow_undefined, min, max, rank);
 }
 
 void betree_add_integer_variable(
@@ -732,10 +751,22 @@ void betree_add_integer_variable(
     add_attr_domain_bounded_i(betree->config, name, allow_undefined, min, max);
 }
 
+void betree_add_ranked_float_variable(
+    struct betree* betree, const char* name, bool allow_undefined, double min, double max, int rank)
+{
+    add_attr_domain_bounded_ranked_f(betree->config, name, allow_undefined, min, max, rank);
+}
+
 void betree_add_float_variable(
     struct betree* betree, const char* name, bool allow_undefined, double min, double max)
 {
     add_attr_domain_bounded_f(betree->config, name, allow_undefined, min, max);
+}
+
+void betree_add_ranked_string_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank)
+{
+    add_attr_domain_bounded_ranked_s(betree->config, name, allow_undefined, count, rank);
 }
 
 void betree_add_string_variable(
@@ -744,15 +775,33 @@ void betree_add_string_variable(
     add_attr_domain_bounded_s(betree->config, name, allow_undefined, count);
 }
 
+void betree_add_ranked_integer_list_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max, int rank)
+{
+    add_attr_domain_bounded_ranked_il(betree->config, name, allow_undefined, min, max, rank);
+}
+
 void betree_add_integer_list_variable(
     struct betree* betree, const char* name, bool allow_undefined, int64_t min, int64_t max)
 {
     add_attr_domain_bounded_il(betree->config, name, allow_undefined, min, max);
 }
 
+void betree_add_ranked_integer_enum_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank)
+{
+    add_attr_domain_bounded_ranked_ie(betree->config, name, allow_undefined, count, rank);
+}
+
 void betree_add_integer_enum_variable(struct betree* betree, const char* name, bool allow_undefined, size_t count)
 {
     add_attr_domain_bounded_ie(betree->config, name, allow_undefined, count);
+}
+
+void betree_add_ranked_string_list_variable(
+    struct betree* betree, const char* name, bool allow_undefined, size_t count, int rank)
+{
+    add_attr_domain_bounded_ranked_sl(betree->config, name, allow_undefined, count, rank);
 }
 
 void betree_add_string_list_variable(
@@ -761,9 +810,20 @@ void betree_add_string_list_variable(
     add_attr_domain_bounded_sl(betree->config, name, allow_undefined, count);
 }
 
+void betree_add_ranked_segments_variable(struct betree* betree, const char* name, bool allow_undefined, int rank)
+{
+    add_attr_domain_ranked_segments(betree->config, name, allow_undefined, rank);
+}
+
 void betree_add_segments_variable(struct betree* betree, const char* name, bool allow_undefined)
 {
     add_attr_domain_segments(betree->config, name, allow_undefined);
+}
+
+void betree_add_ranked_frequency_caps_variable(
+    struct betree* betree, const char* name, bool allow_undefined, int rank)
+{
+    add_attr_domain_ranked_frequency(betree->config, name, allow_undefined, rank);
 }
 
 void betree_add_frequency_caps_variable(
@@ -882,6 +942,7 @@ void betree_add_frequency_cap(struct betree_frequency_caps* frequency_caps,
 static struct betree_variable* betree_make_variable(const char* name, struct value value)
 {
     struct attr_var attr_var = make_attr_var(name, NULL);
+    attr_var.data = NULL;
     struct betree_variable* var = bmalloc(sizeof(*var));
     var->attr_var = attr_var;
     var->value = value;
@@ -1003,3 +1064,8 @@ void betree_set_variable(struct betree_event* event, size_t index, struct betree
     event->variables[index] = variable;
 }
 
+void betree_prepare_sub_data(struct betree* tree)
+{
+    assert(tree->subs_data != NULL);
+    prepare_cnode_subs(tree->cnode, tree->subs_data);
+}

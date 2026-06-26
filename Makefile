@@ -31,8 +31,10 @@ OBJECTS = \
 	$(patsubst %.c,%.o,$(SOURCES)) \
 	$(GENERATED_OBJECTS)
 
-TEST_SOURCES=$(wildcard tests/*_tests.c)
-TEST_BINARIES=$(patsubst %.c,%,${TEST_SOURCES})
+# Allow filtering tests via TESTS variable (e.g., TESTS='*_cb_*' make test)
+TESTS ?= *
+TEST_SOURCES=$(wildcard tests/$(TESTS)_tests.c)
+TEST_BINARIES=$(patsubst tests/%.c,build/tests/%,${TEST_SOURCES})
 
 LEX?=flex
 YACC?=bison
@@ -62,6 +64,7 @@ endif
 #dev: build/libbetree.so build/libbetree.a test valgrind
 .DEFAULT_GOAL := build/libbetree.a
 all: build/libbetree.a
+
 dev: $(GENERATED_OBJECTS) build/libbetree.a test valgrind
 
 dot:
@@ -78,41 +81,57 @@ neato:
 #build/libbetree.so: build $(OBJECTS)
 	#$(CC) -shared $(OBJECTS) -o $@
 
-build/libbetree.a: build $(OBJECTS)
+build/libbetree.a: $(OBJECTS) | build
 	$(AR) rcs $@ $(OBJECTS)
 
 build:
-	mkdir -p build
+	mkdir -p $@
 
 ################################################################################
 # Bison / Flex
 ################################################################################
 
-%.c %.h: | %.l
-	$(LEX) --header-file=$*.h -o $@ $<
-%.c: | %.y
-	$(YACC) $(YFLAGS) -o $@ $<
+%.c %.h: %.l
+	$(LEX) --header-file=$*.h -o $*.c $<
+
+%.c %.h: %.y
+	$(YACC) $(YFLAGS) -o $*.c $<
+
+# Dependencies for generated files
+# Parsers generate both .c and .h files
+src/parser.c src/parser.h: src/parser.y
+src/event_parser.c src/event_parser.h: src/event_parser.y
+
+# Lexers depend on parser headers and generate both .c and .h files
+src/lexer.c src/lexer.h: src/lexer.l src/parser.h
+src/event_lexer.c src/event_lexer.h: src/event_lexer.l src/event_parser.h
+
+# Object files depend on their sources and related headers
+src/parser.o: src/parser.c src/parser.h src/lexer.h
+src/event_parser.o: src/event_parser.c src/event_parser.h src/event_lexer.h
+src/lexer.o: src/lexer.c src/lexer.h src/parser.h
+src/event_lexer.o: src/event_lexer.c src/event_lexer.h src/event_parser.h
 
 ################################################################################
 # BETree
 ################################################################################
 
 src/%.o: src/%.c
-	$(CC) $(DEFINES) $(CFLAGS) -c -o $@ $^ $(LDFLAGS)
+	$(CC) $(DEFINES) $(CFLAGS) -c -o $@ $< $(LDFLAGS)
 
 ################################################################################
 # Tests
 ################################################################################
 
 test: $(TEST_BINARIES)
-	@bash ./tests/runtests.sh
+	@TESTS='$(TESTS)' bash ./tests/runtests.sh
 
 build/tests:
-	mkdir -p build/tests
+	mkdir -p $@
 
 #$(TEST_BINARIES): %: %.c build/tests build/libbetree.so
-$(TEST_BINARIES): %: %.c build/tests build/libbetree.a
-	$(CC) $(CFLAGS) -Isrc -o build/$@ $< build/libbetree.a $(LDFLAGS_TESTS)
+$(TEST_BINARIES): build/tests/%: tests/%.c build/libbetree.a | build/tests
+	$(CC) $(CFLAGS) -Isrc -o $@ $< build/libbetree.a $(LDFLAGS_TESTS)
 
 clean:
 	$(RM) $(OBJECTS)
@@ -134,6 +153,7 @@ valgrind: $(TEST_BINARIES)
 	$(VALGRIND) build/tests/report_tests
 	$(VALGRIND) build/tests/special_tests
 	$(VALGRIND) build/tests/valid_tests
+	$(VALGRIND) build/tests/betree_search_cb_tests
 	#$(VALGRIND) build/tests/real_tests 1
 
 callgrind:
@@ -150,7 +170,6 @@ tidy:
 	#$(TIDY) src/ast.c -checks='*' -- -Isrc
 	#$(TIDY) src/ast_compare.c -checks='*' -- -Isrc
 	#$(TIDY) src/betree.c -checks='*' -- -Isrc
-	#$(TIDY) src/clone.c -checks='*' -- -Isrc
 	#$(TIDY) src/config.c -checks='*' -- -Isrc
 	#$(TIDY) src/debug.c -checks='*' -- -Isrc
 	#$(TIDY) src/hashmap.c -checks='*' -- -Isrc
@@ -169,4 +188,4 @@ build-test-benchmark: build/libbetree.a
 	gcc -o testbenchmark tests/real_tests.c -Isrc -I/usr/include -I/usr/local/include  build/libbetree.a  $(LDFLAGS_TESTS)
 	gcc -o testbenchmark_err tests/real_tests_err.c -Isrc -I/usr/include -I/usr/local/include  build/libbetree.a  $(LDFLAGS_TESTS)
 
-.PHONY: clean realclean test valgrind
+.PHONY: gen dev clean realclean test valgrind

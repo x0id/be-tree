@@ -10,6 +10,7 @@ struct betree_variable;
 struct attr_var {
     const char* attr;
     betree_var_t var;
+    void *data;
 };
 
 bool get_variable(betree_var_t var, const struct betree_variable** preds, struct value* value);

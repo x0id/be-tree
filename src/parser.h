@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -29,6 +30,10 @@
 
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
+
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
 #ifndef YY_XX_SRC_PARSER_H_INCLUDED
 # define YY_XX_SRC_PARSER_H_INCLUDED
@@ -48,48 +53,58 @@
 extern int xxdebug;
 #endif
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef XXTOKENTYPE
 # define XXTOKENTYPE
   enum xxtokentype
   {
-    TMINUS = 258,
-    TCEQ = 259,
-    TCNE = 260,
-    TCGT = 261,
-    TCGE = 262,
-    TCLT = 263,
-    TCLE = 264,
-    TLPAREN = 265,
-    TRPAREN = 266,
-    TCOMMA = 267,
-    TNOTIN = 268,
-    TIN = 269,
-    TONEOF = 270,
-    TNONEOF = 271,
-    TALLOF = 272,
-    TAND = 273,
-    TOR = 274,
-    TNOT = 275,
-    TWITHINFREQUENCYCAP = 276,
-    TSEGMENTWITHIN = 277,
-    TSEGMENTBEFORE = 278,
-    TGEOWITHINRADIUS = 279,
-    TCONTAINS = 280,
-    TSTARTSWITH = 281,
-    TENDSWITH = 282,
-    TISNOTNULL = 283,
-    TISNULL = 284,
-    TISEMPTY = 285,
-    TTRUE = 286,
-    TFALSE = 287,
-    TSTRING = 288,
-    TIDENTIFIER = 289,
-    TINTEGER = 290,
-    TFLOAT = 291
+    XXEMPTY = -2,
+    XXEOF = 0,                     /* "end of file"  */
+    XXerror = 256,                 /* error  */
+    XXUNDEF = 257,                 /* "invalid token"  */
+    TMINUS = 258,                  /* TMINUS  */
+    TCEQ = 259,                    /* TCEQ  */
+    TCNE = 260,                    /* TCNE  */
+    TCGT = 261,                    /* TCGT  */
+    TCGE = 262,                    /* TCGE  */
+    TCLT = 263,                    /* TCLT  */
+    TCLE = 264,                    /* TCLE  */
+    TLPAREN = 265,                 /* TLPAREN  */
+    TRPAREN = 266,                 /* TRPAREN  */
+    TCOMMA = 267,                  /* TCOMMA  */
+    TNOTIN = 268,                  /* TNOTIN  */
+    TIN = 269,                     /* TIN  */
+    TONEOF = 270,                  /* TONEOF  */
+    TNONEOF = 271,                 /* TNONEOF  */
+    TALLOF = 272,                  /* TALLOF  */
+    TAND = 273,                    /* TAND  */
+    TOR = 274,                     /* TOR  */
+    TNOT = 275,                    /* TNOT  */
+    TWITHINFREQUENCYCAP = 276,     /* TWITHINFREQUENCYCAP  */
+    TSEGMENTWITHIN = 277,          /* TSEGMENTWITHIN  */
+    TSEGMENTBEFORE = 278,          /* TSEGMENTBEFORE  */
+    TGEOWITHINRADIUS = 279,        /* TGEOWITHINRADIUS  */
+    TCONTAINS = 280,               /* TCONTAINS  */
+    TSTARTSWITH = 281,             /* TSTARTSWITH  */
+    TENDSWITH = 282,               /* TENDSWITH  */
+    TISNOTNULL = 283,              /* TISNOTNULL  */
+    TISNULL = 284,                 /* TISNULL  */
+    TISEMPTY = 285,                /* TISEMPTY  */
+    TTRUE = 286,                   /* TTRUE  */
+    TFALSE = 287,                  /* TFALSE  */
+    TSTRING = 288,                 /* TSTRING  */
+    TIDENTIFIER = 289,             /* TIDENTIFIER  */
+    TANNOTATION = 290,             /* TANNOTATION  */
+    TINTEGER = 291,                /* TINTEGER  */
+    TFLOAT = 292                   /* TFLOAT  */
   };
+  typedef enum xxtokentype xxtoken_kind_t;
 #endif
-/* Tokens.  */
+/* Token kinds.  */
+#define XXEMPTY -2
+#define XXEOF 0
+#define XXerror 256
+#define XXUNDEF 257
 #define TMINUS 258
 #define TCEQ 259
 #define TCNE 260
@@ -122,15 +137,15 @@ extern int xxdebug;
 #define TFALSE 287
 #define TSTRING 288
 #define TIDENTIFIER 289
-#define TINTEGER 290
-#define TFLOAT 291
+#define TANNOTATION 290
+#define TINTEGER 291
+#define TFLOAT 292
 
 /* Value type.  */
 #if ! defined XXSTYPE && ! defined XXSTYPE_IS_DECLARED
-
 union XXSTYPE
 {
-#line 35 "src/parser.y" /* yacc.c:1909  */
+#line 35 "src/parser.y"
 
     char *string;
     int64_t integer_value;
@@ -148,9 +163,9 @@ union XXSTYPE
     struct ast_node *node;
     int token;
 
-#line 152 "src/parser.h" /* yacc.c:1909  */
-};
+#line 167 "src/parser.h"
 
+};
 typedef union XXSTYPE XXSTYPE;
 # define XXSTYPE_IS_TRIVIAL 1
 # define XXSTYPE_IS_DECLARED 1
@@ -158,6 +173,8 @@ typedef union XXSTYPE XXSTYPE;
 
 
 
+
 int xxparse (void *scanner, struct ast_node** root);
+
 
 #endif /* !YY_XX_SRC_PARSER_H_INCLUDED  */
