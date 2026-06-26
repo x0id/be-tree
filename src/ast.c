@@ -21,7 +21,7 @@
 
 #ifdef TRACE_LAST_VAR
 #define SET_LAST_VAR(report, var_id) do { \
-    if ((report)->cb) { \
+    if ((report) != NULL && (report)->cb) { \
         betree_var_t _new = (var_id); \
         if ((report)->trace && _new != (report)->last_var) { \
             const char* _from = ((report)->last_var < (report)->config->attr_domain_count) \
@@ -38,7 +38,7 @@
 } while(0)
 #else
 #define SET_LAST_VAR(report, var_id) do { \
-    if ((report)->cb) { \
+    if ((report) != NULL && (report)->cb) { \
         (report)->last_var = (var_id); \
     } \
 } while(0)
